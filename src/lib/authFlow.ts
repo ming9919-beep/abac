@@ -86,3 +86,57 @@ export function clearSignupPhone(): void {
     /* ignore */
   }
 }
+
+/* ─── 已登录会话标志 ───────────────────────────────────────────
+   OTP 验证通过进入主页时打上标记；有了它，从主页按「返回」落到
+   任何 auth 页面（语言选择 / 登录 / 开户 / OTP）都会被立刻送回主页，
+   而不会把用户扔回登录流程里。 */
+
+export const SESSION_KEY = 'aba.session';
+
+/** OTP 通过 → 建立会话（顺带把本次手机号记进去，便于展示） */
+export function startSession(): void {
+  try {
+    let phone = '';
+    try {
+      phone = sessionStorage.getItem('aba.pendingPhone') || '';
+    } catch {
+      /* ignore */
+    }
+    sessionStorage.setItem(SESSION_KEY, phone || '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 是否已登录 */
+export function isSessionActive(): boolean {
+  try {
+    return Boolean(sessionStorage.getItem(SESSION_KEY));
+  } catch {
+    return false;
+  }
+}
+
+/** 退出登录（当前 UI 没有入口，保留给后续用） */
+export function endSession(): void {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 已登录时这些页面不该再出现 —— 主页返回不能回到它们 */
+export const AUTH_PATHS = [
+  '/',
+  '/auth/language',
+  '/auth/start',
+  '/auth/register',
+  '/auth/signup',
+  '/auth/otp',
+] as const;
+
+export function isAuthPath(path: string): boolean {
+  return (AUTH_PATHS as readonly string[]).includes(path);
+}

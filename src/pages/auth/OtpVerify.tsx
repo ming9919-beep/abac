@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
-import { getBackFor } from '@/lib/authFlow';
+import { getBackFor, startSession } from '@/lib/authFlow';
 
 const AbaShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
@@ -66,7 +66,11 @@ const OtpVerify: React.FC = () => {
   // After the code is fully filled, navigate to the home page
   useEffect(() => {
     if (!filled) return;
-    const t = setTimeout(() => setLocation('/home'), 900);
+    const t = setTimeout(() => {
+      // 建立会话：此后从主页返回不会再落回登录流程
+      startSession();
+      setLocation('/home');
+    }, 900);
     return () => clearTimeout(t);
   }, [filled, setLocation]);
 

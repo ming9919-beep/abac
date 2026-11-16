@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PinLock from '@/components/PinLock';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { Route, Switch, Router as WouterRouter } from 'wouter';
+import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
+import { isAuthPath, isSessionActive } from '@/lib/authFlow';
 import Home from '@/pages/Home';
 import Accounts from '@/pages/Accounts';
 import AccountDetail from '@/pages/AccountDetail';
@@ -69,6 +70,25 @@ function Router() {
   );
 }
 
+/* ─── 已登录守卫 ───────────────────────────────────────────────
+   OTP 通过后会话已建立。此时若用户从主页按「返回」，浏览器会退到
+   语言选择 / 登录 / 开户 / OTP 这些页面 —— 一律 replace 回主页，
+   避免把已经登录的用户扔回登录流程（那里还会撞上「该手机号已注册」）。
+   replace 而非 push，不会在历史里再堆一条。 */
+function AuthGuard({ children }: { children: ReactNode }) {
+  const [path, navigate] = useLocation();
+  const active = isSessionActive();
+  const blocked = active && isAuthPath(path);
+
+  useEffect(() => {
+    if (blocked) navigate('/home', { replace: true });
+  }, [blocked, navigate]);
+
+  // 重定向生效前先不渲染 auth 页面，避免闪一帧登录界面
+  if (blocked) return null;
+  return <>{children}</>;
+}
+
 /* ─── Splash gate — shows the ABA Mobile splash photo on every launch.
    Tap anywhere (or wait 2.5s) to enter. Matches "installed app" feel. */
 const SPLASH_IMG = `${import.meta.env.BASE_URL}splash.webp`;
@@ -123,7 +143,9 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-              <Router />
+              <AuthGuard>
+                <Router />
+              </AuthGuard>
             </WouterRouter>
             <Toaster />
           </TooltipProvider>

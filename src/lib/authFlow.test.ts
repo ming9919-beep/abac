@@ -2,10 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   SIGNUP_PHONE_KEY,
   clearSignupPhone,
+  endSession,
   getBackFor,
   getSignupPhone,
+  isAuthPath,
+  isSessionActive,
   setBackFor,
   setSignupPhone,
+  startSession,
 } from './authFlow';
 
 describe('authFlow: 注册/登录页面互联', () => {
@@ -63,5 +67,27 @@ describe('authFlow: 注册/登录页面互联', () => {
   it('无记录时返回空串/兜底路径，不抛异常', () => {
     expect(getSignupPhone()).toBe('');
     expect(getBackFor('/auth/otp', '/auth/register')).toBe('/auth/register');
+  });
+
+  it('OTP 通过建立会话，退出后清除', () => {
+    expect(isSessionActive()).toBe(false);
+    startSession();
+    expect(isSessionActive()).toBe(true);
+    endSession();
+    expect(isSessionActive()).toBe(false);
+  });
+
+  it('只有 auth 页面会被守卫拦下，主页与业务页不受影响', () => {
+    expect(isAuthPath('/')).toBe(true);
+    expect(isAuthPath('/auth/language')).toBe(true);
+    expect(isAuthPath('/auth/start')).toBe(true);
+    expect(isAuthPath('/auth/register')).toBe(true);
+    expect(isAuthPath('/auth/signup')).toBe(true);
+    expect(isAuthPath('/auth/otp')).toBe(true);
+
+    expect(isAuthPath('/home')).toBe(false);
+    expect(isAuthPath('/accounts')).toBe(false);
+    expect(isAuthPath('/transfer')).toBe(false);
+    expect(isAuthPath('/settings/profile')).toBe(false);
   });
 });
