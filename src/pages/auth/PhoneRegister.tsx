@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Delete, ShieldAlert } from 'lucide-react';
+import { ChevronLeft, Delete, ShieldAlert, UserPlus } from 'lucide-react';
 import {
   PHONE_NOT_REGISTERED_I18N,
   checkPhoneRegistered,
   normalizePhone,
 } from '@/lib/phoneRegistry';
+import { getBackFor, setBackFor, setSignupPhone } from '@/lib/authFlow';
 
 const AbaShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
@@ -76,6 +77,17 @@ const PhoneRegister: React.FC = () => {
   const canContinue = phone.replace(/\D/g, '').length >= 6;
 
   /**
+   * 未注册 → 跳开户页。
+   * 带两件事过去：① 记住来源页，开户页的返回键能原路回来；
+   *               ② 把刚输入的号码预填进开户表单，用户不用再打一遍。
+   */
+  const goSignup = () => {
+    setBackFor('/auth/signup', '/auth/register');
+    setSignupPhone(phone);
+    setLocation('/auth/signup');
+  };
+
+  /**
    * 登录前置校验：数据库里没有这个手机号 = 没注册 = 不允许进入下一步。
    * 服务端可达时以服务端为准，否则用本地注册表兜底（见 src/lib/phoneRegistry.ts）。
    */
@@ -94,6 +106,7 @@ const PhoneRegister: React.FC = () => {
       try {
         sessionStorage.setItem('aba.pendingPhone', normalizePhone(phone));
       } catch { /* storage unavailable */ }
+      setBackFor('/auth/otp', '/auth/register');
       setLocation('/auth/otp');
     } finally {
       setChecking(false);
@@ -105,7 +118,7 @@ const PhoneRegister: React.FC = () => {
       {/* Header */}
       <div className="relative z-10 flex items-center gap-3 px-3 pt-3 pb-3">
         <button
-          onClick={() => setLocation('/auth/start')}
+          onClick={() => setLocation(getBackFor('/auth/register', '/auth/start'))}
           className="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 transition-colors"
           aria-label="Back"
         >
@@ -172,6 +185,19 @@ const PhoneRegister: React.FC = () => {
               <span className="text-white/45 text-[12px] mt-1">
                 សូមចុះឈ្មោះជាមុនសិន · 请先注册后再登录
               </span>
+              {/* 未注册 → 直接去开户页，别让用户自己找路 */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={goSignup}
+                className="mt-3 w-full h-[46px] rounded-xl text-white text-[15px] font-bold flex items-center justify-center gap-2 transition-all active:brightness-110"
+                style={{
+                  background: 'linear-gradient(180deg, #F05A4A 0%, #E94B3C 55%, #D83E30 100%)',
+                  boxShadow: '0 6px 16px rgba(233,75,60,0.32), inset 0 1px 0 rgba(255,255,255,0.18)',
+                }}
+              >
+                <UserPlus className="w-5 h-5" strokeWidth={2.2} />
+                ចុះឈ្មោះឥឡូវនេះ · 立即注册开户
+              </motion.button>
             </div>
           </motion.div>
         )}
@@ -191,6 +217,17 @@ const PhoneRegister: React.FC = () => {
         >
           {checking ? 'កំពុងពិនិត្យ...' : 'បន្ទាប់'}
         </motion.button>
+
+        {/* 常驻入口：还没有账户的用户随时能去开户页 */}
+        <p className="text-white/50 text-[13px] text-center mt-5 leading-relaxed">
+          មិនទាន់មានគណនី ABA?
+          <button
+            onClick={goSignup}
+            className="text-[#3FD6E0] underline underline-offset-4 ml-1 font-medium"
+          >
+            ចុះឈ្មោះឥឡូវនេះ · 立即注册
+          </button>
+        </p>
       </div>
 
       <div className="flex-1" />

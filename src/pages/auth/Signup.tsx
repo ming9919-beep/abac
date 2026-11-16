@@ -4,6 +4,12 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { normalizePhone } from '@/lib/phoneRegistry';
 import {
+  clearSignupPhone,
+  getBackFor,
+  getSignupPhone,
+  setBackFor,
+} from '@/lib/authFlow';
+import {
   isStrongPassword,
   isValidNationalId,
   normalizeNationalId,
@@ -55,13 +61,14 @@ const FIELDS: { key: FieldKey; label: string; hint: string; type?: string; place
 
 const Signup: React.FC = () => {
   const [, setLocation] = useLocation();
-  const [values, setValues] = useState<Record<FieldKey, string>>({
-    phone: '',
+  // 从登录页未注册拦截带过来的号码 → 预填，用户不用再打一遍
+  const [values, setValues] = useState<Record<FieldKey, string>>(() => ({
+    phone: getSignupPhone(),
     fullName: '',
     nationalIdNo: '',
     password: '',
     confirm: '',
-  });
+  }));
   const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -124,6 +131,10 @@ const Signup: React.FC = () => {
       try {
         sessionStorage.setItem('aba.pendingPhone', normalizePhone(values.phone));
       } catch { /* storage unavailable */ }
+      clearSignupPhone();
+      // 注册已成功、账号已创建 → OTP 的返回键回主页，
+      // 而不是回开户表单（回去只会撞上「该手机号已注册」的死路）。
+      setBackFor('/auth/otp', '/home');
       // 注册完成 → 进入 OTP 验证，再进首页
       setLocation('/auth/otp');
     } finally {
@@ -138,7 +149,7 @@ const Signup: React.FC = () => {
       {/* Header */}
       <div className="relative z-10 flex items-center gap-3 px-3 pt-3 pb-3">
         <button
-          onClick={() => setLocation('/auth/start')}
+          onClick={() => setLocation(getBackFor('/auth/signup', '/auth/start'))}
           className="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 transition-colors"
           aria-label="Back"
         >
@@ -269,7 +280,11 @@ const Signup: React.FC = () => {
           已有账号？
           <button
             className="text-[#3FD6E0] underline underline-offset-4 ml-1"
-            onClick={() => setLocation('/auth/register')}
+            onClick={() => {
+              // 记住来源，登录页的返回键能回到开户页
+              setBackFor('/auth/register', '/auth/signup');
+              setLocation('/auth/register');
+            }}
           >
             返回登录
           </button>

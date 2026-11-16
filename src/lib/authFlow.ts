@@ -1,0 +1,88 @@
+/**
+ * 注册 / 登录流程的页面互联（auth flow navigation）。
+ *
+ * 目标：`/auth/start`、`/auth/register`（登录）、`/auth/signup`（开户）、
+ * `/auth/otp`（验证码）四个页面之间任意可达，不出现死胡同，也不出现自环：
+ *
+ *   start ──▶ register ──(未注册拦截)──▶ signup
+ *     │          ▲                          │
+ *     │          └──────(已有账号登录)───────┘
+ *     └──────────▶ signup ──(注册成功)──▶ otp ──▶ home
+ *
+ * 关键：**按目标页面分别记录返回来源**（`aba.back:<页面>`），而不是共用一个键。
+ * 共用一个键时，register→signup 会把 back 改成 signup，
+ * 之后在 signup 点返回就跳回自己（自环）。
+ *
+ * 存 sessionStorage，仅本标签页有效，关掉即清，不落盘。
+ */
+
+import { normalizePhone } from './phoneRegistry';
+
+/** 开户页预填的手机号（登录页未注册拦截后跳开户时带过去） */
+export const SIGNUP_PHONE_KEY = 'aba.signupPhone';
+
+const backKey = (page: string) => `aba.back:${page}`;
+
+/**
+ * 记录「page 这一页是从 source 进来的」，page 的返回键就能回到 source。
+ * 必须在跳转到 page **之前**调用。
+ */
+export function setBackFor(page: string, source: string): void {
+  try {
+    sessionStorage.setItem(backKey(page), source);
+  } catch {
+    /* storage 不可用时静默降级为 fallback */
+  }
+}
+
+/**
+ * 读取 page 的返回目标。
+ * 没有记录（直接刷新 / 首次进入 / 路由直达）时用 fallback，避免返回到不存在的页面。
+ */
+export function getBackFor(page: string, fallback: string): string {
+  try {
+    const v = sessionStorage.getItem(backKey(page));
+    // 防御：不允许返回到自己
+    return v && v !== page ? v : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * 记录开户页要预填的手机号。
+ * 复用 phoneRegistry 的 normalizePhone —— 它已经处理了「+855 097 993 5561」
+ * 这种把本地前导 0 也写进来的写法，统一到 `855979935561`。
+ */
+export function setSignupPhone(raw: string): void {
+  try {
+    const digits = normalizePhone(raw);
+    if (digits.replace(/\D/g, '').length >= 6) {
+      sessionStorage.setItem(SIGNUP_PHONE_KEY, digits);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 取出开户页预填手机号，转成本地展示格式 `0979935561`；无记录返回空串 */
+export function getSignupPhone(): string {
+  try {
+    const raw = sessionStorage.getItem(SIGNUP_PHONE_KEY);
+    if (!raw) return '';
+    const digits = raw.replace(/\D+/g, '');
+    if (digits.startsWith('855')) return `0${digits.slice(3)}`;
+    return digits;
+  } catch {
+    return '';
+  }
+}
+
+/** 开户成功后清掉预填，避免下次进入残留旧号码 */
+export function clearSignupPhone(): void {
+  try {
+    sessionStorage.removeItem(SIGNUP_PHONE_KEY);
+  } catch {
+    /* ignore */
+  }
+}

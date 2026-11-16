@@ -47,7 +47,7 @@ describe('Signup: 开户必须完成身份证信息', () => {
     mockSetLocation.mockClear();
     walletAuth.registerAccount.mockReset();
     try {
-      sessionStorage.removeItem('aba.pendingPhone');
+      sessionStorage.clear();
     } catch {
       /* ignore */
     }
@@ -130,5 +130,44 @@ describe('Signup: 开户必须完成身份证信息', () => {
     });
     expect(screen.getByText('证件号已被使用')).toBeInTheDocument();
     expect(mockSetLocation).not.toHaveBeenCalled();
+  });
+
+  it('登录页带过来的号码被预填进手机号字段', () => {
+    try {
+      sessionStorage.setItem('aba.signupPhone', '855912000111');
+    } catch {
+      /* ignore */
+    }
+
+    render(<Signup />);
+    const phone = screen.getByLabelText(/手机号/) as HTMLInputElement;
+    expect(phone.value).toBe('0912000111');
+  });
+
+  it('「返回登录」→ 跳登录页并记住来源（登录页返回键可回到开户页）', () => {
+    render(<Signup />);
+    fireEvent.click(screen.getByText('返回登录'));
+
+    expect(mockSetLocation).toHaveBeenCalledWith('/auth/register');
+    expect(sessionStorage.getItem('aba.back:/auth/register')).toBe('/auth/signup');
+  });
+
+  it('注册成功 → 记住来源为开户页，OTP 返回键回到这里', async () => {
+    walletAuth.registerAccount.mockResolvedValue({
+      ok: true,
+      source: 'server',
+      message: '注册成功',
+    });
+
+    render(<Signup />);
+    fillForm();
+    fireEvent.click(screen.getByRole('button', { name: /完成开户/ }));
+
+    await waitFor(() => {
+      expect(mockSetLocation).toHaveBeenCalledWith('/auth/otp');
+    });
+    expect(sessionStorage.getItem('aba.back:/auth/otp')).toBe('/home');
+    // 开户成功后清掉预填，避免下次残留
+    expect(sessionStorage.getItem('aba.signupPhone')).toBeNull();
   });
 });

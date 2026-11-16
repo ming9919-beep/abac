@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import PhoneRegister from './PhoneRegister';
-import { PHONE_NOT_REGISTERED_I18N } from '@/lib/phoneRegistry';
+import { PHONE_NOT_REGISTERED_I18N, PHONE_NOT_REGISTERED_MESSAGE } from '@/lib/phoneRegistry';
 
 const mockSetLocation = vi.fn();
 vi.mock('wouter', () => ({
@@ -34,7 +34,7 @@ describe('PhoneRegister: 未注册手机号无法登录', () => {
     mockSetLocation.mockClear();
     phoneRegistry.checkPhoneRegistered.mockReset();
     try {
-      sessionStorage.removeItem('aba.pendingPhone');
+      sessionStorage.clear();
     } catch {
       /* ignore */
     }
@@ -86,5 +86,39 @@ describe('PhoneRegister: 未注册手机号无法登录', () => {
     });
     expect(screen.queryByRole('alert')).toBeNull();
     expect(sessionStorage.getItem('aba.pendingPhone')).toBe('855979935561');
+    // 进 OTP 前记下来源，OTP 返回键能回到登录页
+    expect(sessionStorage.getItem('aba.back:/auth/otp')).toBe('/auth/register');
+  });
+
+  it('未注册 → 拦截提示里有「立即注册开户」，点了带号码跳开户页', async () => {
+    phoneRegistry.checkPhoneRegistered.mockResolvedValue({
+      registered: false,
+      status: null,
+      message: PHONE_NOT_REGISTERED_MESSAGE,
+      source: 'server',
+    });
+
+    render(<PhoneRegister />);
+    pressDigits('011888777');
+    fireEvent.click(screen.getByText('បន្ទាប់'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/立即注册开户/));
+
+    expect(mockSetLocation).toHaveBeenCalledWith('/auth/signup');
+    // 记住来源 + 预填号码，开户页返回键与手机号都不用重来
+    expect(sessionStorage.getItem('aba.back:/auth/signup')).toBe('/auth/register');
+    expect(sessionStorage.getItem('aba.signupPhone')).toBe('85511888777');
+  });
+
+  it('不触发拦截也有常驻「立即注册」入口', () => {
+    render(<PhoneRegister />);
+    fireEvent.click(screen.getByText(/· 立即注册$/));
+
+    expect(mockSetLocation).toHaveBeenCalledWith('/auth/signup');
+    expect(sessionStorage.getItem('aba.back:/auth/signup')).toBe('/auth/register');
   });
 });

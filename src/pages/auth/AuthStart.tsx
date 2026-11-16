@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Smartphone, Wallet, ChevronRight } from 'lucide-react';
+import { setBackFor } from '@/lib/authFlow';
 
 /* Reuse the shared shell + wordmark defined in LanguageSelect */
 const AbaShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -71,7 +72,10 @@ const AuthStart: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.1 }}
           whileTap={{ scale: 0.985 }}
-          onClick={() => setLocation('/auth/register')}
+          onClick={() => {
+            setBackFor('/auth/register', '/auth/start');
+            setLocation('/auth/register');
+          }}
           className="w-full text-left rounded-3xl px-5 py-5 flex items-center gap-4 active:brightness-110 transition-all"
           style={{
             background: 'linear-gradient(180deg, #F05A4A 0%, #E94B3C 55%, #D83E30 100%)',
@@ -108,7 +112,10 @@ const AuthStart: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.2 }}
           whileTap={{ scale: 0.985 }}
-          onClick={() => setLocation('/auth/signup')}
+          onClick={() => {
+            setBackFor('/auth/signup', '/auth/start');
+            setLocation('/auth/signup');
+          }}
           className="w-full text-left rounded-3xl px-5 py-5 flex items-center gap-4 transition-all"
           style={{
             background: 'rgba(255,255,255,0.04)',

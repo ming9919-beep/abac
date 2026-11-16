@@ -119,7 +119,9 @@ overrides:
   "rollup>@rollup/rollup-win32-x64-gnu": "-"
   # 注意：本机是 Windows x64，rollup 的原生二进制不能被排除，
   # 否则 vite/dev server 启动即报 Cannot find module @rollup/rollup-win32-x64-msvc。
-  "rollup>@rollup/rollup-linux-x64-gnu": "-"
+  # 注意：绝不能排除 rollup-linux-x64-gnu —— Render 在 Linux x64(glibc) 上构建，
+  # 缺了它 vite build 直接报 Cannot find module @rollup/rollup-linux-x64-gnu。
+  # 同理 esbuild/oxide/lightningcss 的 linux-x64-gnu 变体必须保留（只排除 -musl 变体）。
   "@expo/ngrok-bin>@expo/ngrok-bin-darwin-arm64": "-"
   "@expo/ngrok-bin>@expo/ngrok-bin-darwin-x64": "-"
   "@expo/ngrok-bin>@expo/ngrok-bin-freebsd-ia32": "-"

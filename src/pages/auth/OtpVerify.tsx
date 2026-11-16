@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
+import { getBackFor } from '@/lib/authFlow';
 
 const AbaShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
@@ -76,7 +77,7 @@ const OtpVerify: React.FC = () => {
       {/* Header */}
       <div className="relative z-10 flex items-center gap-3 px-3 pt-3 pb-3">
         <button
-          onClick={() => setLocation('/auth/register')}
+          onClick={() => setLocation(getBackFor('/auth/otp', '/auth/register'))}
           className="w-10 h-10 flex items-center justify-center rounded-full active:bg-white/10 transition-colors"
           aria-label="Back"
         >
