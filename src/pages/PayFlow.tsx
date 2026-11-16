@@ -10,9 +10,11 @@ import BankLogo from '@/components/BankLogo';
 import { getTtsLang, speakTransferSuccessSmart } from '@/lib/tts';
 import pinLockLogo from '@/assets/pin-lock-logo.png';
 
+import { PAYMENT_PIN } from '@/lib/userStore';
+
 type Step = 'amount' | 'pin' | 'processing' | 'success';
 type Currency = 'USD' | 'KHR';
-const MOCK_PAYMENT_PIN = '888000';
+const MOCK_PAYMENT_PIN = PAYMENT_PIN;
 
 const DARK_TEAL: React.CSSProperties = {
   background: 'linear-gradient(165deg, #164654 0%, #0C2A33 55%, #071A21 100%)',
@@ -255,8 +257,10 @@ const SuccessScreen = ({
 }) => {
   const [, setLocation] = useLocation();
   const now = new Date();
-  const stamp = `${now.getMonth() + 1} តុលា | ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) + ' | ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + 'PM';
+  const KM_MONTHS = ['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+  const stamp = `${now.getDate()} ${KM_MONTHS[now.getMonth()]} | ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    + ' | ' + `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
   const ref1 = Math.random().toString(16).slice(2, 10);
   const ref2 = String(Math.floor(Math.random() * 9e11) + 1e11);
   const amt = currency === 'USD' ? `-${parseFloat(amount || '0.01').toFixed(2)} USD` : `-${amount} KHR`;
@@ -395,6 +399,7 @@ const PinScreen = ({ amount, currency, onPin, onCancel, error, shake }: {
       const t = setTimeout(() => setPin(''), 600);
       return () => clearTimeout(t);
     }
+    return undefined; // 无错误时无 cleanup（显式返回，满足 noImplicitReturns）
   }, [error]);
   const handleKey = (k: string) => {
     if (error) return;
@@ -512,6 +517,7 @@ export default function PayFlow() {
       const t = setTimeout(() => setStep('success'), 2600);
       return () => clearTimeout(t);
     }
+    return undefined; // 其它步骤无 cleanup（显式返回，满足 noImplicitReturns）
   }, [step]);
 
   const recordedRef = useRef(false);
@@ -529,7 +535,9 @@ export default function PayFlow() {
             bankColor,
   bankCode,
             bakongId: payeeAccount,
-            accountNumber: accounts[fromIdx % accounts.length].number,
+            accountNumber: payeeAccount.split('@')[0],
+            fromAccountNumber: accounts[fromIdx % accounts.length].number,
+            fromName: accounts[fromIdx % accounts.length].name,
             note: note || undefined,
           });
           deductBalance(accounts[fromIdx % accounts.length].id, Number(amountStr || '0.01'));

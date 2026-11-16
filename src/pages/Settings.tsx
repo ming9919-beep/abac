@@ -4,6 +4,7 @@ import {
   X, User, ShieldCheck, Sparkles, Globe, Phone, FileText, Briefcase, ChevronRight, Volume2,
 } from 'lucide-react';
 import { getTtsLang, setTtsLang, type TtsLang } from '@/lib/tts';
+import { getUser } from '@/lib/userStore';
 
 /* ─── Grey/white cartoon cat avatar (Tom style, same as Home) ───────────────── */
 const TomCatAvatar = () => (
@@ -88,7 +89,7 @@ export default function Settings() {
             <div className="w-[84px] h-[84px] rounded-full overflow-hidden border-[3px] border-white shadow-md">
               <TomCatAvatar />
             </div>
-            <p className="mt-3 text-[18px] font-extrabold text-gray-900 tracking-tight">Yukheang SOEU</p>
+            <p className="mt-3 text-[18px] font-extrabold text-gray-900 tracking-tight">{getUser().fullName}</p>
             <p className="mt-0.5 text-[13px] text-gray-500 font-medium">លេខសម្គាល់: 49399</p>
           </div>
 

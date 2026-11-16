@@ -44,7 +44,7 @@ describe('TransactionDetail receipt', () => {
       ['លេខកូដប្រតិបត្តិការ', '58148069728'],
       ['Bakong hash #', 'f4ab25ae'],
       ['Bank', 'Pi Pay Plc.'],
-      ['From account', 'qiang (150 614 168)'],
+      ['From account', 'CHHENG BONNY (016 681 281)'],
       ['Original amount', '1.00 USD'],
       ['Reference #', '100FT38433785322'],
       ['Seller', 'Nisai Media'],

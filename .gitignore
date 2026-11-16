@@ -1,5 +1,9 @@
 # dependencies
 node_modules
+node_modules.partial.bak
+
+# local tooling caches
+.vite-sandbox-cache
 
 # build output
 dist
@@ -24,3 +28,8 @@ coverage
 Thumbs.db
 .cache/
 .local/
+
+# iOS build artifacts
+*.ipa
+*.xcarchive
+ios/App/App/App.xcodeproj/project.xcworkspace/xcuserdata

@@ -1,101 +1,111 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, MoreHorizontal, Wallet, ChevronDown, Plus } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, Wallet, ChevronDown, Plus, BarChart3 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { accounts } from '../data/accounts';
 import { getBalance } from '../lib/balanceStore';
 import type { Account } from '../data/accounts';
 
-/* ─── Blue gradient circular ring ──────────────────────────────────────────── */
+/* ─── Purple donut ring (matches ABA official screenshot) ───────────────────── */
 const RingChart = () => {
   const r = 54;
   const cx = 72;
   const cy = 72;
   const circumference = 2 * Math.PI * r;
-  // Main arc ~88% filled
-  const filled = circumference * 0.88;
-  const gap = circumference - filled;
+
+  // Segments (clockwise from top): blue ~12%, violet ~6%, purple ~76%, gap ~6%
+  const blue = circumference * 0.12;
+  const violet = circumference * 0.06;
+  const purple = circumference * 0.76;
+  const gap = circumference - blue - violet - purple;
+
+  // Start at top (-90deg = 25% of circumference offset)
+  const startOffset = circumference * 0.25;
 
   return (
     <svg width="144" height="144" viewBox="0 0 144 144">
       <defs>
-        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0A1A6E" />
-          <stop offset="40%" stopColor="#1060CC" />
-          <stop offset="75%" stopColor="#00AAFF" />
-          <stop offset="100%" stopColor="#00E0FF" />
+        {/* Purple/magenta main arc */}
+        <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#D946EF" />
+          <stop offset="50%" stopColor="#C026D3" />
+          <stop offset="100%" stopColor="#A21CAF" />
         </linearGradient>
-        <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#CC44EE" />
-          <stop offset="100%" stopColor="#8833FF" />
+        {/* Blue segment */}
+        <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#38BDF8" />
+          <stop offset="100%" stopColor="#0EA5E9" />
         </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        {/* Violet segment */}
+        <linearGradient id="violetGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#8B5CF6" />
+          <stop offset="100%" stopColor="#7C3AED" />
+        </linearGradient>
+        <filter id="ringGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
       </defs>
 
-      {/* Background track */}
+      {/* Dark track */}
       <circle
         cx={cx} cy={cy} r={r}
         fill="none"
-        stroke="#E5E7EB"
+        stroke="rgba(255,255,255,0.12)"
         strokeWidth="13"
       />
 
-      {/* Main filled arc */}
+      {/* Purple main arc (largest) */}
       <circle
         cx={cx} cy={cy} r={r}
         fill="none"
-        stroke="url(#ringGrad)"
+        stroke="url(#purpleGrad)"
         strokeWidth="13"
-        strokeDasharray={`${filled} ${gap}`}
-        strokeDashoffset={circumference * 0.25}
+        strokeDasharray={`${purple} ${circumference - purple}`}
+        strokeDashoffset={startOffset - blue - violet}
         strokeLinecap="round"
         style={{ transition: 'stroke-dasharray 0.8s ease' }}
       />
 
-      {/* Purple accent streaks at top */}
+      {/* Blue segment at top */}
       <circle
         cx={cx} cy={cy} r={r}
         fill="none"
-        stroke="url(#accentGrad)"
+        stroke="url(#blueGrad)"
         strokeWidth="13"
-        strokeDasharray={`${circumference * 0.06} ${circumference * 0.94}`}
-        strokeDashoffset={circumference * 0.22}
+        strokeDasharray={`${blue} ${circumference - blue}`}
+        strokeDashoffset={startOffset}
         strokeLinecap="round"
-        filter="url(#glow)"
-        opacity="0.9"
+        filter="url(#ringGlow)"
       />
+
+      {/* Violet segment after blue */}
       <circle
         cx={cx} cy={cy} r={r}
         fill="none"
-        stroke="#EE55FF"
-        strokeWidth="5"
-        strokeDasharray={`${circumference * 0.03} ${circumference * 0.97}`}
-        strokeDashoffset={circumference * 0.20}
+        stroke="url(#violetGrad)"
+        strokeWidth="13"
+        strokeDasharray={`${violet} ${circumference - violet}`}
+        strokeDashoffset={startOffset - blue}
         strokeLinecap="round"
-        opacity="0.7"
       />
 
-      {/* Inner white circle */}
-      <circle cx={cx} cy={cy} r="40" fill="#FFFFFF" />
+      {/* Inner hole: transparent (shows background) with subtle inner ring */}
+      <circle cx={cx} cy={cy} r="40" fill="rgba(15,10,25,0.35)" />
+      <circle cx={cx} cy={cy} r="40" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
 
-      {/* Center icon: card with transfer arrows */}
-      <g transform="translate(58, 52)">
-        {/* Outer card shape */}
-        <rect x="0" y="3" width="20" height="14" rx="2.5" fill="none" stroke="#374151" strokeWidth="1.6" />
-        {/* Card stripe */}
-        <rect x="0" y="7" width="20" height="3" fill="#9CA3AF" opacity="0.5" />
-        {/* Inner dot */}
-        <circle cx="10" cy="10" r="3.5" fill="none" stroke="#374151" strokeWidth="1.4" />
-        {/* Upward arrow */}
-        <path d="M6 2 L10 -2 L14 2" fill="none" stroke="#00CCFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <line x1="10" y1="-2" x2="10" y2="2" stroke="#00CCFF" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Center wallet icon (white) */}
+      <g transform="translate(58, 50)" stroke="#FFFFFF" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="0" y="4" width="20" height="13" rx="2.5" fill="rgba(255,255,255,0.06)" />
+        <path d="M3 8 h17 a2 2 0 0 1 2 2 v5 a2 2 0 0 1 -2 2 h-17 a2 2 0 0 1 -2 -2 v-9 a2 2 0 0 1 2 -2 z" />
+        <rect x="13" y="9" width="4" height="3" rx="1" fill="#FFFFFF" stroke="none" />
       </g>
 
-      {/* Center Khmer label */}
-      <text x={cx} y={cy + 16} textAnchor="middle" fill="#374151" fontSize="7.5" fontWeight="700" fontFamily="sans-serif" opacity="0.9">
+      {/* Center label (white) */}
+      <text x={cx} y={cy + 22} textAnchor="middle" fill="#FFFFFF" fontSize="8.5" fontWeight="700" fontFamily="sans-serif" opacity="0.95">
         គណនីទាំងអស់
       </text>
     </svg>
@@ -204,21 +214,26 @@ export default function Accounts() {
     <div className="min-h-[100dvh] md:h-screen md:min-h-screen bg-gray-200 flex items-center justify-center md:p-4 font-sans select-none">
       <div className="w-full h-full md:max-w-[390px] md:h-[844px] bg-white md:rounded-[2.5rem] shadow-2xl relative overflow-hidden md:border-[8px] border-black flex flex-col">
 
-        {/* Background: subtle light gradient */}
+        {/* Background: Angkor temple image with dark overlay (matches ABA official) */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-white via-gray-50 to-gray-100" />
+          <img
+            src={`${import.meta.env.BASE_URL}images/theme-angkor.jpg`}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/40 to-black/65" />
         </div>
 
-        {/* ── Header ── */}
+        {/* ── Header (white text over image) ── */}
         <div className="relative z-20 px-5 pt-12 pb-2 flex items-center gap-3">
           <button
             onClick={() => setLocation('/')}
-            className="text-gray-800 hover:text-gray-900 transition-colors"
+            className="text-white hover:text-white/80 transition-colors"
           >
             <ArrowLeft className="w-6 h-6" strokeWidth={2.5} />
           </button>
-          <h1 className="text-[20px] font-extrabold text-gray-900 tracking-tight">
-            ABA<span className="text-gray-900 text-2xl font-black">'</span>{' '}
+          <h1 className="text-[22px] font-extrabold text-white tracking-tight">
+            ABA<span className="text-white text-2xl font-black">'</span>{' '}
             <span className="font-semibold">គណនី</span>
           </h1>
         </div>
@@ -234,36 +249,37 @@ export default function Accounts() {
             <RingChart />
           </motion.div>
 
-          {/* Balance info */}
+          {/* Balance info (white text) */}
           <motion.div
             initial={{ opacity: 0, x: 18 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.18, duration: 0.4 }}
             className="text-right flex-1 ml-4"
           >
-            <p className="text-[11px] text-gray-500 font-medium mb-1 tracking-wide">ទឹកប្រាក់ដែលមាន</p>
-            <p className="text-[33px] font-extrabold text-gray-900 leading-none tracking-tight">
+            <p className="text-[11px] text-white/70 font-medium mb-1 tracking-wide">ទឹកប្រាក់ដែលមាន</p>
+            <p className="text-[33px] font-extrabold text-white leading-none tracking-tight drop-shadow-sm">
               ${accounts.filter((a) => a.currency === 'USD').reduce((sum, a) => sum + (Number(getBalance(a.id, a.balance)) || 0), 0).toFixed(2)}
             </p>
-            <div className="w-full h-[1px] bg-gray-200 my-2" />
-            <p className="text-[27px] font-extrabold text-gray-900 leading-none">
-              <span className="text-[16px] align-top mt-[3px] inline-block font-bold text-gray-500 mr-[1px]">៛</span>
+            <div className="w-full h-[1px] bg-white/25 my-2" />
+            <p className="text-[27px] font-extrabold text-white leading-none drop-shadow-sm">
+              <span className="text-[16px] align-top mt-[3px] inline-block font-bold text-white/70 mr-[1px]">៛</span>
               {accounts.filter((a) => a.currency === 'KHR').reduce((sum, a) => sum + (Number(getBalance(a.id, a.balance)) || 0), 0).toLocaleString()}
             </p>
           </motion.div>
         </div>
 
-        {/* ── Analytics label + chevron (matches ABA official screenshot) ── */}
+        {/* ── Analytics label + chevron (white, matches ABA official) ── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="relative z-10 flex flex-col items-center justify-center mb-1"
         >
-          <button className="flex items-center gap-1.5 text-gray-600 hover:text-gray-800 transition-colors px-4 py-1">
+          <button className="flex items-center gap-1.5 text-white/80 hover:text-white transition-colors px-4 py-1">
+            <BarChart3 className="w-[13px] h-[13px]" strokeWidth={2} />
             <span className="text-[13px] font-semibold">មុខងារវិភាគ</span>
           </button>
-          <ChevronDown className="w-4 h-4 text-gray-400 -mt-0.5" strokeWidth={2} />
+          <ChevronDown className="w-4 h-4 text-white/50 -mt-0.5" strokeWidth={2} />
         </motion.div>
 
         {/* ── White slide-up sheet ── */}
@@ -271,8 +287,15 @@ export default function Accounts() {
           initial={{ y: 28 }}
           animate={{ y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
-          className="flex-1 bg-[#F3F2F7] rounded-t-[26px] overflow-y-auto z-20 mt-1 pb-24"
+          className="flex-1 bg-[#F3F2F7] rounded-t-[26px] overflow-y-auto z-20 mt-1 pb-24 relative"
         >
+          {/* Top center notch (ABA-style concave cutout) */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[1px] w-12 h-4 pointer-events-none">
+            <svg viewBox="0 0 48 16" className="w-full h-full" preserveAspectRatio="none">
+              <path d="M0,0 L48,0 L48,2 Q40,2 36,6 Q30,14 24,14 Q18,14 12,6 Q8,2 0,2 Z" fill="#F3F2F7" />
+            </svg>
+          </div>
+
           {/* Section header */}
           <div className="px-5 pt-5 pb-3 flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center">

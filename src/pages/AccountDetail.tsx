@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, QrCode, BarChart2, MoreVertical, ChevronDown, Store, FileText, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, QrCode, BarChart2, MoreVertical, ChevronDown, Store, FileText, Eye, EyeOff, Info } from 'lucide-react';
 import { useLocation, useParams } from 'wouter';
 import { accounts } from '../data/accounts';
 import { getDynamicTxns, todayStatementDate } from '../lib/txnStore';
@@ -272,40 +272,124 @@ export default function AccountDetail() {
     </motion.button>
   );
 
+  // Cards of the same currency (for the card selector pills)
+  const sameCurrencyCards = accounts.filter((a) => a.currency === account.currency && a.card);
+
+  // Total balance across all accounts of the same currency
+  const totalBalance = accounts
+    .filter((a) => a.currency === account.currency)
+    .reduce((sum, a) => sum + (a.balance !== null ? Number(getBalance(a.id, a.balance)) || 0 : 0), 0);
+
+  const balance = getBalance(account.id, account.balance);
+
   return (
     <div className="min-h-[100dvh] md:h-screen md:min-h-screen bg-gray-200 flex items-center justify-center md:p-4 font-sans select-none">
       <div className="w-full h-full md:max-w-[390px] md:h-[844px] bg-white md:rounded-[2.5rem] shadow-2xl relative overflow-hidden md:border-[8px] border-black flex flex-col">
 
-        {/* ── Header: account name + number/balance + icons ── */}
-        <div className="relative z-20 px-4 pt-12 pb-3 flex items-center gap-3 bg-white">
-          <button onClick={() => setLocation('/accounts')} className="text-gray-800 hover:text-gray-900 transition-colors shrink-0">
+        {/* Background: Angkor temple image with dark overlay */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <img
+            src={`${import.meta.env.BASE_URL}images/theme-angkor.jpg`}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/40 to-black/65" />
+        </div>
+
+        {/* ── Header: back + title + action icons (all white) ── */}
+        <div className="relative z-20 px-4 pt-12 pb-1 flex items-center gap-3">
+          <button onClick={() => setLocation('/accounts')} className="text-white hover:text-white/80 transition-colors shrink-0">
             <ArrowLeft className="w-6 h-6" strokeWidth={2.5} />
           </button>
-          <div className="flex-1 min-w-0">
-            <p className="text-[17px] font-extrabold text-gray-900 leading-tight truncate">{account.name}</p>
-            <p className="text-[12px] text-gray-500 font-semibold leading-tight">
-              {account.number}
-            </p>
-          </div>
-        </div>
-
-        {/* ── Filter strip: pending transactions ── */}
-        <div className="relative z-10 px-4 pb-2">
-          <button className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#FDECEC] hover:bg-[#FBDADA] transition-colors">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-800">ប្រតិបត្តិការបង្កទុក</span>
-              <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#E8002D] text-white text-[11px] font-extrabold flex items-center justify-center">3</span>
-            </div>
-            <ChevronDown className="w-4 h-4 text-gray-500" strokeWidth={2.5} />
+          <h1 className="text-[22px] font-extrabold text-white tracking-tight">
+            ABA<span className="text-white text-2xl font-black">'</span>{' '}
+            <span className="font-semibold">គណនី</span>
+          </h1>
+          <div className="flex-1" />
+          <button className="text-white hover:text-white/80 transition-colors shrink-0 p-1">
+            <QrCode className="w-6 h-6" strokeWidth={2} />
+          </button>
+          <button className="text-white hover:text-white/80 transition-colors shrink-0 p-1">
+            <BarChart2 className="w-6 h-6" strokeWidth={2} />
+          </button>
+          <button className="text-white hover:text-white/80 transition-colors shrink-0 p-1">
+            <MoreVertical className="w-6 h-6" strokeWidth={2} />
           </button>
         </div>
 
-        {/* ── Transaction list ── */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        {/* ── Account identifier + balance ── */}
+        <div className="relative z-10 px-5 pt-3 flex flex-col items-center text-center">
+          <p className="text-[15px] text-white/90 font-semibold tracking-wide">
+            {account.name.charAt(0).toUpperCase()} | {account.number}
+          </p>
+          <p className="text-[44px] font-extrabold text-white leading-none mt-2 drop-shadow-sm">
+            {balance} <span className="text-[22px] font-bold align-middle">{account.currency}</span>
+          </p>
+          <div className="flex items-center gap-1.5 mt-2">
+            <span className="text-[13px] text-white/80 font-medium">សមតុល្យសរុប:</span>
+            <span className="text-[13px] text-white font-bold">{totalBalance.toFixed(2)} {account.currency}</span>
+            <Info className="w-[13px] h-[13px] text-white/60" strokeWidth={2} />
+          </div>
+        </div>
+
+        {/* ── Card selector pills ── */}
+        <div className="relative z-10 px-5 pt-5 flex items-center justify-center gap-3">
+          {sameCurrencyCards.map((c) => {
+            const isActive = c.id === account.id;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setLocation(`/accounts/${c.id}`)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-colors ${
+                  isActive
+                    ? 'bg-white text-gray-900 shadow-md'
+                    : 'bg-white/15 text-white hover:bg-white/25'
+                }`}
+              >
+                {c.cardType === 'visa' ? (
+                  <span className="text-[11px] font-black italic">VISA</span>
+                ) : (
+                  <svg width="18" height="12" viewBox="0 0 24 16" className="shrink-0">
+                    <rect x="0" y="0" width="24" height="16" rx="3" fill="#EB001B" />
+                    <circle cx="9" cy="8" r="5" fill="#F79E1B" />
+                    <circle cx="15" cy="8" r="5" fill="#FF5F00" />
+                  </svg>
+                )}
+                {c.card}
+                <ChevronDown className="w-3 h-3 -rotate-90" strokeWidth={2.5} />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Chevron down ── */}
+        <div className="relative z-10 flex justify-center pt-4 pb-1">
+          <ChevronDown className="w-5 h-5 text-white/60" strokeWidth={2} />
+        </div>
+
+        {/* ── White slide-up sheet (transactions) ── */}
+        <motion.div
+          initial={{ y: 28 }}
+          animate={{ y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="flex-1 bg-[#F3F2F7] rounded-t-[26px] overflow-y-auto z-20 mt-1 pb-6"
+        >
+          {/* Pending transactions strip */}
+          <div className="px-4 pt-4 pb-2">
+            <button className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#FDECEC] hover:bg-[#FBDADA] transition-colors">
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-800">ប្រតិបត្តិការបង្កទុក</span>
+                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#E8002D] text-white text-[11px] font-extrabold flex items-center justify-center">3</span>
+              </div>
+              <ChevronDown className="w-4 h-4 text-gray-500" strokeWidth={2.5} />
+            </button>
+          </div>
+
           {/* Transaction list header */}
-          <div className="flex items-center justify-between px-5 pt-3 pb-1">
+          <div className="flex items-center justify-between px-5 pt-2 pb-1">
             <p className="text-[13px] font-bold text-gray-500">ប្រវត្តិប្រតិបត្តិការ · Transactions</p>
           </div>
+
           {/* Dynamic txns (today) */}
           {dynamicTxns.length > 0 && (
             <div className="px-5 pt-3 pb-1">
@@ -330,21 +414,20 @@ export default function AccountDetail() {
             </div>
           ))}
 
-          <div className="h-6" />
-        </div>
+          {/* Show more */}
+          {hasMore && !showAll && (
+            <div className="px-4 pt-3">
+              <button
+                onClick={() => setShowAll(true)}
+                className="w-full py-3.5 rounded-2xl bg-[#E8002D] hover:bg-[#D00028] transition-colors text-white text-[15px] font-extrabold shadow-lg"
+              >
+                បង្ហាញបន្ថែម
+              </button>
+            </div>
+          )}
 
-        {/* ── Bottom: Show more (only when more groups exist) ── */}
-        {hasMore && !showAll && (
-          <div className="relative z-20 px-4 pb-6 pt-2 bg-white">
-            <button
-              onClick={() => setShowAll(true)}
-              className="w-full py-3.5 rounded-2xl bg-[#E8002D] hover:bg-[#D00028] transition-colors text-white text-[15px] font-extrabold shadow-lg"
-            >
-              បង្ហាញបន្ថែម
-            </button>
-          </div>
-        )}
-        {showAll && <div className="h-6" />}
+          <div className="h-4" />
+        </motion.div>
       </div>
     </div>
   );

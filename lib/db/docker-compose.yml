@@ -1,0 +1,42 @@
+# 本地 PostgreSQL（钱包数据库）
+#
+#   docker compose -f lib/db/docker-compose.yml up -d
+#   docker compose -f lib/db/docker-compose.yml down -v   # 连数据一起删（仅测试环境）
+#
+# 数据保存在具名卷 pgdata；端口 5432 与宿主机 5432 冲突时改右侧映射。
+name: aba-wallet-db
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aba-wallet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wallet_admin
+      POSTGRES_PASSWORD: CHANGE_ME_LOCAL_ONLY
+      POSTGRES_DB: wallet_dev
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 启动时自动执行迁移（按文件名字典序）
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet_admin -d wallet_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=cp %p /var/lib/postgresql/archive/%f
+      - -c
+      - max_wal_size=1GB
+
+volumes:
+  pgdata:

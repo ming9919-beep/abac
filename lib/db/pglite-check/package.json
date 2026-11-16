@@ -1,0 +1,14 @@
+{
+  "name": "wallet-pglite-check",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "In-memory PostgreSQL (PGlite) checks for the wallet migrations: runs every DDL file and asserts the schema invariants. Does NOT need a real database, Docker or drizzle-kit.",
+  "scripts": {
+    "check": "node run.mjs",
+    "check:flow": "node run.mjs --flow"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16"
+  }
+}

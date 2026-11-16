@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { defaultAccount } from '../data/accounts';
 import { getBalance } from '../lib/balanceStore';
+import { getUser } from '../lib/userStore';
 import HomeRedesign from './HomeRedesign';
 import promo0 from '@/assets/promo_0.webp';
 import promo1 from '@/assets/promo_1.webp';
@@ -70,7 +71,7 @@ const TopHeader = ({ onSwitch }: { onSwitch: () => void }) => {
         </button>
         <div>
           <p className="text-[13px] text-gray-500 font-bold leading-none mb-1">{getGreeting()}</p>
-          <p className="text-[20px] font-extrabold text-gray-900 leading-none tracking-tight">Yukheang</p>
+          <p className="text-[20px] font-extrabold text-gray-900 leading-none tracking-tight">{getUser().shortName}</p>
         </div>
       </div>
       <div className="flex items-center gap-3">

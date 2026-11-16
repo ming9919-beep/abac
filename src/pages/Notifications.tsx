@@ -263,8 +263,8 @@ export default function Notifications() {
   };
 
   return (
-    <div className="min-h-[100dvh] md:h-screen md:min-h-screen bg-gray-300 flex items-center justify-center md:p-4 font-sans select-none">
-      <div className="w-full h-full md:max-w-[390px] md:h-[844px] bg-[#F3F2F7] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden md:border-[8px] border-black flex flex-col">
+    <div className="min-h-[100dvh] bg-[#F3F2F7] font-sans select-none flex flex-col">
+      <div className="w-full flex-1 flex flex-col relative overflow-hidden">
 
         {/* Header */}
         <div className="relative z-20 px-5 pt-12 pb-3 flex items-center gap-3 bg-[#F3F2F7]">

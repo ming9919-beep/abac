@@ -13,6 +13,9 @@ const REAL_LOGOS: Record<string, string> = {
   acledabank: 'bank-logos/acleda.png',
   acledabank_plc: 'bank-logos/acleda.png',
   pipay: 'bank-logos/pipay.png',
+  truemoney: 'bank-logos/truemoney.png',
+  truemoneywallet: 'bank-logos/truemoney.png',
+  truemoney_wallet: 'bank-logos/truemoney.png',
   pippay: 'bank-logos/pipay.png',
   canadiabank: 'bank-logos/canadia.png',
   chipmong: 'bank-logos/chipmong.png',
@@ -25,6 +28,13 @@ const REAL_LOGOS: Record<string, string> = {
 /** True when the bank has a real logo image (vs. the SVG wordmark tile). */
 export function hasRealLogo(bankCode?: string): boolean {
   return !!bankCode && !!REAL_LOGOS[bankCode.toLowerCase()];
+}
+
+/** Public URL of the bank's real logo image, resolved against the deploy base path. */
+export function getRealLogoUrl(bankCode?: string): string | undefined {
+  if (!bankCode) return undefined;
+  const file = REAL_LOGOS[bankCode.toLowerCase()];
+  return file ? `${import.meta.env.BASE_URL}${file}` : undefined;
 }
 
 /**
@@ -67,11 +77,11 @@ const BankLogo = ({
   const gid = `banklogo-${info.short}-${dim}`;
 
   // Real logo image (if available for this bank)
-  const realLogo = bankCode ? REAL_LOGOS[bankCode.toLowerCase()] : undefined;
+  const realLogo = getRealLogoUrl(bankCode);
   if (realLogo) {
     const img = (
       <img
-        src={`${import.meta.env.BASE_URL}${realLogo}`}
+        src={realLogo}
         alt={bankName}
         width={dim}
         height={dim}

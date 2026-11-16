@@ -13,7 +13,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'artifacts/api-server/**/*.test.{ts,tsx}'],
+    exclude: [
+      '**/node_modules/**',
+      // artifacts/aba-mobile 是历史副本，不参与本仓库测试
+      'artifacts/aba-mobile/**',
+      'artifacts/**/dist/**',
+    ],
     css: false,
   },
 });

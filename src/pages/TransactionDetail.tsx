@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Check, Share2, Download, MessageCircle, Clock, Upload } from 'lucide-react';
 import { useLocation, useParams } from 'wouter';
 import { getTxnDetail } from '../lib/txnStore';
+import { accounts, defaultAccount } from '../data/accounts';
 
 type TxStatus = { label: string; time: string };
 
@@ -102,9 +103,9 @@ const txDetails: Record<string, TxDetail> = {
     amount: '-5.00', type: 'debit', merchant: 'KET SOKLY',
     avatar: { type: 'initials', color: '#16A34A', text: 'KS', badge: 'check' },
     fields: internalTpl({
-      trx: '62810821841', fromAccount: 'qiang (150 614 168)',
+      trx: '62810821841', fromAccount: 'CHHENG BONNY (016 681 281)',
       original: '5.00 USD', reference: '100FT39274468733',
-      sender: 'qiang', toAccount: 'KET SOKLY (012 xxx xxx)',
+      sender: 'CHHENG BONNY', toAccount: 'KET SOKLY (012 xxx xxx)',
       date: 'Oct 11, 2026 09:12 AM',
     }),
   },
@@ -112,9 +113,9 @@ const txDetails: Record<string, TxDetail> = {
     amount: '-3.00', type: 'debit', merchant: 'SEAB CHANTY',
     avatar: { type: 'initials', color: '#16A34A', text: 'SC', badge: 'check' },
     fields: internalTpl({
-      trx: '62810821855', fromAccount: 'qiang (150 614 168)',
+      trx: '62810821855', fromAccount: 'CHHENG BONNY (016 681 281)',
       original: '3.00 USD', reference: '100FT39274468744',
-      sender: 'qiang', toAccount: 'SEAB CHANTY (096 xxx xxx)',
+      sender: 'CHHENG BONNY', toAccount: 'SEAB CHANTY (096 xxx xxx)',
       date: 'Oct 11, 2026 10:30 AM',
     }),
   },
@@ -122,9 +123,9 @@ const txDetails: Record<string, TxDetail> = {
     amount: '-1.49', type: 'debit', merchant: 'SOM SOPHEAN',
     avatar: { type: 'initials', color: '#16A34A', text: 'SS', badge: 'check' },
     fields: internalTpl({
-      trx: '62810821878', fromAccount: 'qiang (150 614 168)',
+      trx: '62810821878', fromAccount: 'CHHENG BONNY (016 681 281)',
       original: '1.49 USD', reference: '100FT39274468761',
-      sender: 'qiang', toAccount: 'SOM SOPHEAN (085 xxx xxx)',
+      sender: 'CHHENG BONNY', toAccount: 'SOM SOPHEAN (085 xxx xxx)',
       date: 'Oct 10, 2026 01:15 PM',
     }),
   },
@@ -132,9 +133,9 @@ const txDetails: Record<string, TxDetail> = {
     amount: '-2.00', type: 'debit', merchant: 'PHONE RECHARGE',
     avatar: { type: 'initials', color: '#DC2626', text: 'PR', badge: 'check' },
     fields: internalTpl({
-      trx: '62810821902', fromAccount: 'qiang (150 614 168)',
+      trx: '62810821902', fromAccount: 'CHHENG BONNY (016 681 281)',
       original: '2.00 USD', reference: '100FT39274468788',
-      sender: 'qiang', toAccount: 'PHONE RECHARGE (017 xxx xxx)',
+      sender: 'CHHENG BONNY', toAccount: 'PHONE RECHARGE (017 xxx xxx)',
       date: 'Oct 10, 2026 03:05 PM',
     }),
   },
@@ -142,9 +143,9 @@ const txDetails: Record<string, TxDetail> = {
     amount: '-5.00', type: 'debit', merchant: 'LOEURM REY',
     avatar: { type: 'initials', color: '#4338CA', text: 'LP', badge: 'check' },
     fields: internalTpl({
-      trx: '62810821828', fromAccount: 'qiang (150 614 168)',
+      trx: '62810821828', fromAccount: 'CHHENG BONNY (016 681 281)',
       original: '5.00 USD', reference: '100FT39274468711',
-      sender: 'qiang', toAccount: 'LOEURM REY (017 xxx xxx)',
+      sender: 'CHHENG BONNY', toAccount: 'LOEURM REY (017 xxx xxx)',
       date: 'Oct 11, 2026 08:45 AM',
     }),
   },
@@ -155,7 +156,7 @@ const txDetails: Record<string, TxDetail> = {
     fields: internalTpl({
       trx: '62810821841', fromAccount: '017 530 556',
       original: '20.00 USD', reference: '100FT39274468733',
-      sender: 'LEAH SEAN', toAccount: 'qiang (150614168)',
+      sender: 'LEAH SEAN', toAccount: 'CHHENG BONNY (016681281)',
       date: 'Oct 09, 2026 07:06 AM',
     }),
   },
@@ -224,19 +225,19 @@ const txDetails: Record<string, TxDetail> = {
     amount: '-30,000', currency: 'KHR', type: 'debit', merchant: 'EDC អគ្គិសនីកម្ពុជា',
     avatar: { type: 'store', color: '#F59E0B' },
     fields: internalTpl({
-      trx: '62810900101', fromAccount: 'qiang (600 980 842)',
+      trx: '62810900101', fromAccount: 'CHHENG BONNY (016 280 235)',
       original: '30,000 KHR', reference: '100FT39290010101',
-      sender: 'qiang', toAccount: 'EDC អគ្គិសនីកម្ពុជា',
+      sender: 'CHHENG BONNY', toAccount: 'EDC អគ្គិសនីកម្ពុជា',
       date: 'Oct 11, 2026 08:00 AM',
     }),
   },
   '102': {
-    amount: '+81,000', currency: 'KHR', type: 'credit', merchant: 'qiang (internal)',
+    amount: '+81,000', currency: 'KHR', type: 'credit', merchant: 'CHHENG BONNY (internal)',
     avatar: { type: 'initials', color: '#1A7AFF', text: 'QH', badge: 'check' },
     fields: internalTpl({
-      trx: '62810900102', fromAccount: 'qiang (150 614 168)',
+      trx: '62810900102', fromAccount: 'CHHENG BONNY (016 681 281)',
       original: '81,000 KHR', reference: '100FT39290010202',
-      sender: 'qiang', toAccount: 'qiang (600980842)',
+      sender: 'CHHENG BONNY', toAccount: 'CHHENG BONNY (016280235)',
       date: 'Oct 11, 2026 09:30 AM',
     }),
   },
@@ -244,9 +245,9 @@ const txDetails: Record<string, TxDetail> = {
     amount: '-20,000', currency: 'KHR', type: 'debit', merchant: 'TELA Telecom',
     avatar: { type: 'store', color: '#8B5CF6' },
     fields: internalTpl({
-      trx: '62810900103', fromAccount: 'qiang (600 980 842)',
+      trx: '62810900103', fromAccount: 'CHHENG BONNY (016 280 235)',
       original: '20,000 KHR', reference: '100FT39290010303',
-      sender: 'qiang', toAccount: 'TELA Telecom',
+      sender: 'CHHENG BONNY', toAccount: 'TELA Telecom',
       date: 'Oct 10, 2026 02:15 PM',
     }),
   },
@@ -256,7 +257,7 @@ const txDetails: Record<string, TxDetail> = {
     fields: internalTpl({
       trx: '62810900104', fromAccount: 'ACLEDA Bank',
       original: '500,000 KHR', reference: '100FT39290010404',
-      sender: 'Salary', toAccount: 'qiang (600980842)',
+      sender: 'Salary', toAccount: 'CHHENG BONNY (016280235)',
       date: 'Oct 10, 2026 10:00 AM',
     }),
   },
@@ -276,9 +277,9 @@ const getDefault = (txId: string, accountId: string): TxDetail => ({
   avatar: { type: 'initials', color: '#6B7280', text: 'TX', badge: 'check' },
   fields: internalTpl({
     trx: `628109${txId}${accountId}`,
-    fromAccount: 'qiang (150 614 168)',
+    fromAccount: 'CHHENG BONNY (016 681 281)',
     original: '0.00 USD', reference: `100FT${txId}${accountId}`,
-    sender: 'qiang', toAccount: 'TRANSACTION',
+    sender: 'CHHENG BONNY', toAccount: 'TRANSACTION',
     date: 'Oct 11, 2026 12:00 PM',
   }),
 });
@@ -357,6 +358,9 @@ const ActionButton = ({ icon, title, subtitle }: { icon: React.ReactNode; title:
 export default function TransactionDetail() {
   const [, setLocation] = useLocation();
   const params = useParams<{ id: string; txId: string }>();
+  /* Peeking-through header must reflect the real account + its live balance
+     (the old hard-coded "20000.00" never matched the statement after a transfer). */
+  const acct = accounts.find((a) => a.id === params.id) ?? defaultAccount;
   const tx = txDetails[params.txId] ?? getTxnDetail(params.txId) ?? getDefault(params.txId, params.id);
   const avatar = tx.avatar ?? { type: 'initials', color: '#6B7280', text: 'TX' };
 
@@ -370,8 +374,8 @@ export default function TransactionDetail() {
         {/* ── Light backdrop (account list peeking through) ── */}
         <div className="absolute inset-0 pointer-events-none bg-gray-50">
           <div className="px-5 pt-14">
-            <p className="text-gray-900 text-[18px] font-extrabold tracking-tight">qiang</p>
-            <p className="text-gray-500 text-[12px] font-semibold mt-0.5">150 614 168 | 20000.00 USD</p>
+            <p className="text-gray-900 text-[18px] font-extrabold tracking-tight">{acct.name}</p>
+            <p className="text-gray-500 text-[12px] font-semibold mt-0.5">{acct.number}</p>
           </div>
         </div>
 
@@ -401,7 +405,7 @@ export default function TransactionDetail() {
               <TxAvatar avatar={avatar} size={52} />
               <div className="flex-1 min-w-0">
                 <p data-testid="receipt-amount" className="text-[24px] font-extrabold leading-tight tracking-tight text-gray-900">
-                  {absAmount} <span className="text-[16px] font-bold text-gray-500">{tx.currency === 'KHR' ? 'KHR' : 'USD'}</span>
+                  {tx.type === 'debit' ? '-' : ''}{absAmount} <span className="text-[16px] font-bold text-gray-500">{tx.currency === 'KHR' ? 'KHR' : 'USD'}</span>
                 </p>
                 <p className="text-[14px] font-semibold text-gray-500 mt-0.5 truncate">{description}</p>
               </div>

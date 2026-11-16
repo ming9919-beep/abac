@@ -26,13 +26,24 @@ import Incoming from '@/pages/Incoming';
 import Banks from '@/pages/Banks';
 import Notifications from '@/pages/Notifications';
 import Chat from '@/pages/Chat';
+import LanguageSelect from '@/pages/auth/LanguageSelect';
+import AuthStart from '@/pages/auth/AuthStart';
+import PhoneRegister from '@/pages/auth/PhoneRegister';
+import Signup from '@/pages/auth/Signup';
+import OtpVerify from '@/pages/auth/OtpVerify';
 
 const queryClient = new QueryClient();
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={LanguageSelect} />
+      <Route path="/home" component={Home} />
+      <Route path="/auth/language" component={LanguageSelect} />
+      <Route path="/auth/start" component={AuthStart} />
+      <Route path="/auth/register" component={PhoneRegister} />
+      <Route path="/auth/signup" component={Signup} />
+      <Route path="/auth/otp" component={OtpVerify} />
       <Route path="/scan" component={Scanner} />
       <Route path="/pay" component={PayFlow} />
       <Route path="/transfer" component={TransferHub} />

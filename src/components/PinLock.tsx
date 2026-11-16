@@ -3,10 +3,10 @@ import pinLockLogo from '@/assets/pin-lock-logo.png';
 
 /* ─── ABA-style 6-digit PIN lock ──────────────────────────────────────────────
    Used at app launch (every fresh entry) and before the personal center.
-   The correct PIN is 888000 (user-specified). Wrong PIN shakes the dots and
+   The correct PIN is 123456 (user-specified). Wrong PIN shakes the dots and
    clears. Unlock state is kept in sessionStorage so a refresh / new tab
    re-prompts (matches "每次进入都要输密码"). */
-export const APP_PIN = '888000';
+export const APP_PIN = '123456';
 const PIN_LEN = 6;
 
 const PinLock = ({
