@@ -90,9 +90,26 @@ export function clearSignupPhone(): void {
 /* ─── 已登录会话标志 ───────────────────────────────────────────
    OTP 验证通过进入主页时打上标记；有了它，从主页按「返回」落到
    任何 auth 页面（语言选择 / 登录 / 开户 / OTP）都会被立刻送回主页，
-   而不会把用户扔回登录流程里。 */
+   而不会把用户扔回登录流程里。
+
+   存 localStorage：登录一次后，刷新、新开标签页、关掉浏览器再打开
+   都不会再看到登录页面。安全性由 PIN 锁（PinLock，每次打开仍要输）
+   兜底 —— PIN 存 sessionStorage，标签页关掉即失效。 */
 
 export const SESSION_KEY = 'aba.session';
+
+/** 优先 localStorage，拿不到（隐私模式/禁用）就退回 sessionStorage */
+function sessionStore(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    try {
+      return window.sessionStorage;
+    } catch {
+      return null;
+    }
+  }
+}
 
 /** OTP 通过 → 建立会话（顺带把本次手机号记进去，便于展示） */
 export function startSession(): void {
@@ -103,7 +120,10 @@ export function startSession(): void {
     } catch {
       /* ignore */
     }
-    sessionStorage.setItem(SESSION_KEY, phone || '1');
+    const value = phone || '1';
+    sessionStore()?.setItem(SESSION_KEY, value);
+    // 兼容之前存在 sessionStorage 的会话，避免升级后要重新登录
+    sessionStorage.setItem(SESSION_KEY, value);
   } catch {
     /* ignore */
   }
@@ -111,6 +131,11 @@ export function startSession(): void {
 
 /** 是否已登录 */
 export function isSessionActive(): boolean {
+  try {
+    if (window.localStorage?.getItem(SESSION_KEY)) return true;
+  } catch {
+    /* ignore */
+  }
   try {
     return Boolean(sessionStorage.getItem(SESSION_KEY));
   } catch {
@@ -120,6 +145,11 @@ export function isSessionActive(): boolean {
 
 /** 退出登录（当前 UI 没有入口，保留给后续用） */
 export function endSession(): void {
+  try {
+    window.localStorage?.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
   try {
     sessionStorage.removeItem(SESSION_KEY);
   } catch {

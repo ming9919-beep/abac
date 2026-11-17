@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import {
   SIGNUP_PHONE_KEY,
   clearSignupPhone,
@@ -12,10 +12,41 @@ import {
   startSession,
 } from './authFlow';
 
+/**
+ * 本项目的 jsdom 环境没有 localStorage（真实浏览器一定有）。
+ * 这里补一个最小实现，好让「会话持久化」这条逻辑能被真正测到。
+ */
+function ensureLocalStorage(): void {
+  if (window.localStorage) return;
+  const mem = new Map<string, string>();
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (k: string) => (mem.has(k) ? (mem.get(k) as string) : null),
+      setItem: (k: string, v: string) => {
+        mem.set(k, String(v));
+      },
+      removeItem: (k: string) => {
+        mem.delete(k);
+      },
+      clear: () => mem.clear(),
+      key: (i: number) => Array.from(mem.keys())[i] ?? null,
+      get length() {
+        return mem.size;
+      },
+    },
+  });
+}
+
 describe('authFlow: 注册/登录页面互联', () => {
+  beforeAll(() => {
+    ensureLocalStorage();
+  });
+
   beforeEach(() => {
     try {
       sessionStorage.clear();
+      localStorage.clear();
     } catch {
       /* ignore */
     }
@@ -75,6 +106,18 @@ describe('authFlow: 注册/登录页面互联', () => {
     expect(isSessionActive()).toBe(true);
     endSession();
     expect(isSessionActive()).toBe(false);
+  });
+
+  it('会话持久化在 localStorage：刷新/新标签页都不会退回登录页', () => {
+    startSession();
+    // 模拟「关掉 sessionStorage（换标签页/刷新）」后仍保持登录
+    sessionStorage.clear();
+    expect(isSessionActive()).toBe(true);
+    expect(localStorage.getItem('aba.session')).toBeTruthy();
+
+    endSession();
+    expect(isSessionActive()).toBe(false);
+    expect(localStorage.getItem('aba.session')).toBeNull();
   });
 
   it('只有 auth 页面会被守卫拦下，主页与业务页不受影响', () => {
