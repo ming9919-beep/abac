@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { ArrowLeft, RefreshCw, AlertTriangle, TrendingUp, Landmark } from 'lucide-react';
 import { getIncoming, type IncomingRow, type IncomingResult } from '@/lib/paywayClient';
 import { recordTransferIn } from '@/lib/notificationStore';
+import { getUser } from '@/lib/userStore';
 
 /* ABA API ទទួលប្រាក់ — incoming funds statement from the ABA PayWay gateway. */
 
@@ -53,6 +54,7 @@ export default function Incoming() {
       // Record every successful incoming as a notification (入账通知),
       // deduplicated by tran_id so repeat visits don't re-notify.
       try {
+        const phone = (getUser().phone || '0979935561').replace(/\s+/g, '');
         for (const row of r.rows) {
           const s = Number(row.status);
           const ok = !row.status || s === 0 || s === 2;
@@ -65,6 +67,19 @@ export default function Incoming() {
             reference: String(row.tran_id ?? ''),
             dedupKey: String(row.tran_id ?? '') + String(row.req_time ?? ''),
           });
+          // Also persist to gateway DB (按客户手机号持久化入账记录).
+          fetch('/api/wallet/transactions/record', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone,
+              direction: 'credit',
+              counterparty: row.description ? String(row.description) : 'ABA PayWay 收款',
+              amount: String(row.amount),
+              currency: row.currency === 'KHR' ? 'KHR' : 'USD',
+              reference: String(row.tran_id ?? ''),
+            }),
+          }).catch(() => { /* best-effort */ });
         }
       } catch { /* notifications best-effort */ }
     });

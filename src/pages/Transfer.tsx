@@ -19,7 +19,7 @@ import {
   type PayWayInitiateResult,
 } from '@/lib/paywayClient';
 
-import { PAYMENT_PIN } from '@/lib/userStore';
+import { PAYMENT_PIN, getUser } from '@/lib/userStore';
 
 /* Mock payment PIN for the demo (real flow verifies server-side). */
 const MOCK_PAYMENT_PIN = PAYMENT_PIN;
@@ -765,6 +765,25 @@ export default function Transfer() {
       fromName: selectedAccount.name,
       note: note.trim() || undefined,
     });
+    // Persist transfer record to gateway DB (按客户手机号持久化), fire-and-forget.
+    try {
+      const phone = (getUser().phone || '').replace(/\s+/g, '');
+      if (phone) {
+        fetch(`/api/wallet/transactions/record`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone,
+            direction: 'debit',
+            counterparty: d.merchantName,
+            amount: deductAmount || payeeAmount,
+            currency: currency || payeeCurrency,
+            reference: d.bakongId || d.accountNumber || undefined,
+            note: note.trim() || undefined,
+          }),
+        }).catch(() => { /* offline / gateway down — keep local record only */ });
+      }
+    } catch { /* best-effort */ }
     setPinStep(false);
     setLivePay(null);
     setPwPay(null);

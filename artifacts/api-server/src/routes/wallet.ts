@@ -511,6 +511,55 @@ router.get(
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /** POST /admin/transactions/:id/approve â€” { decision, note } */
+/* ─── 客户转账记录（按手机号持久化，原型期用独立表 customer_transactions） */
+/** POST /transactions/record — 记录一笔转出/入账，按手机号关联客户 */
+router.post(
+  "/transactions/record",
+  asyncRoute(async (req, res) => {
+    const body = bodyOf(req);
+    const phone = String(body.phone || "").trim();
+    const direction = String(body.direction || "debit").trim();
+    const counterparty = String(body.counterparty || "").trim();
+    const amount = Number(body.amount);
+    const currency = String(body.currency || "USD").trim();
+    if (!phone || !counterparty || !Number.isFinite(amount) || amount <= 0) {
+      throw new WalletError("INVALID_INPUT", "缺少 phone/counterparty/amount 或金额无效");
+    }
+    const ref = body.reference ? String(body.reference) : null;
+    const note = body.note ? String(body.note) : null;
+    const rows = await query<{ id: string }>(
+      `INSERT INTO customer_transactions (phone, direction, counterparty, amount, currency, reference, note)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id`,
+      [phone, direction, counterparty, amount, currency, ref, note],
+    );
+    res.status(201).json({ ok: true, id: rows[0]?.id });
+  }),
+);
+
+/** GET /transactions-by-phone?phone=&limit= — 按手机号查转账记录（最新在前） */
+router.get(
+  "/transactions-by-phone",
+  asyncRoute(async (req, res) => {
+    const phone = String(req.query.phone || "").trim();
+    if (!phone) throw new WalletError("INVALID_INPUT", "缺少 phone 参数");
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const rows = await query<{
+      id: string; phone: string; direction: string; counterparty: string;
+      amount: string; currency: string; reference: string | null; note: string | null;
+      created_at: string;
+    }>(
+      `SELECT id, phone, direction, counterparty, amount, currency, reference, note, created_at
+         FROM customer_transactions
+        WHERE phone = $1
+        ORDER BY created_at DESC
+        LIMIT $2`,
+      [phone, limit],
+    );
+    res.json({ count: rows.length, rows });
+  }),
+);
+
 router.post(
   "/admin/transactions/:id/approve",
   requireAdmin,
