@@ -98,16 +98,12 @@ export function clearSignupPhone(): void {
 
 export const SESSION_KEY = 'aba.session';
 
-/** 优先 localStorage，拿不到（隐私模式/禁用）就退回 sessionStorage */
+/** 只返回 sessionStorage —— 会话不持久化，关掉标签页即失效 */
 function sessionStore(): Storage | null {
   try {
-    return window.localStorage;
+    return window.sessionStorage;
   } catch {
-    try {
-      return window.sessionStorage;
-    } catch {
-      return null;
-    }
+    return null;
   }
 }
 
@@ -129,13 +125,8 @@ export function startSession(): void {
   }
 }
 
-/** 是否已登录 */
+/** 是否已登录 —— 只认 sessionStorage，关掉标签页即失效 */
 export function isSessionActive(): boolean {
-  try {
-    if (window.localStorage?.getItem(SESSION_KEY)) return true;
-  } catch {
-    /* ignore */
-  }
   try {
     return Boolean(sessionStorage.getItem(SESSION_KEY));
   } catch {

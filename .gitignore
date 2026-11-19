@@ -33,3 +33,6 @@ Thumbs.db
 *.ipa
 *.xcarchive
 ios/App/App/App.xcodeproj/project.xcworkspace/xcuserdata
+
+# runtime pglite wallet data
+artifacts/api-server/.wallet-pglite/

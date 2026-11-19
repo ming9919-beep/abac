@@ -24,7 +24,7 @@ const DEFAULTS: UserProfile = {
   fullName: 'CHHENG BONNY',
   shortName: 'CHHENG BONNY',
   phone: '097 993 5561',
-  paymentPin: '123456',
+  paymentPin: '150614',
   usdAccount: '016681281',
   usdAccountDisplay: '016 681 281',
   khrAccount: '016280235',

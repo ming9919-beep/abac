@@ -61,6 +61,50 @@ if (typeof window !== 'undefined') {
   });
 }
 
+/* ─── Web Audio chime: ABA PaySong-style three ascending tones (E5→A5→C6).
+   Pure local synthesis — no network, no system voice, always audible.
+   Played first in every announcement so the user hears *something* even if
+   the TTS server is dead and the device has no Khmer/Chinese voice pack. */
+let audioCtx: AudioContext | null = null;
+function getAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    if (!audioCtx) {
+      const AC = (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+        .AudioContext
+        ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') void audioCtx.resume();
+    return audioCtx;
+  } catch {
+    return null;
+  }
+}
+/** Play a short three-note ascending chime. Fire-and-forget; never throws. */
+export function playPaySongChime(): void {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    const notes = [659.25, 880.0, 1046.5]; // E5, A5, C6
+    const t0 = ctx.currentTime + 0.02;
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const start = t0 + i * 0.16;
+      const dur = 0.22;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.35, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.05);
+    });
+  } catch { /* ignore — chime is best-effort */ }
+}
 /* ─── Shared: send text to the server, play the returned MP3. Returns true on
    success; on ANY failure (network, timeout, play rejection) returns false so
    the caller can fall back to browser TTS. */
@@ -76,8 +120,17 @@ async function playServerTts(text: string): Promise<boolean> {
     });
     clearTimeout(timer);
     if (!resp.ok) return false;
+    // MIME guard: a suspended/dead TTS server often returns an HTML error
+    // page with 200 OK. Refuse anything that is not audio.
+    const ct = (resp.headers.get('content-type') || '').toLowerCase();
+    if (ct && !ct.startsWith('audio/') && !ct.includes('mpeg') && !ct.includes('octet-stream')) {
+      return false;
+    }
     const blob = await resp.blob();
     if (!blob || blob.size < 100) return false;
+    if (blob.type && !blob.type.toLowerCase().startsWith('audio/') && !blob.type.includes('octet-stream')) {
+      return false;
+    }
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     const cleanup = () => { try { URL.revokeObjectURL(url); } catch { /* ignore */ } };
@@ -137,6 +190,42 @@ function speakBrowser(text: string, lang: TtsLang): boolean {
   }
 }
 
+/* ─── Browser TTS with English fallback ─────────────────────────────────────
+   Most Cambodian phones have no Khmer (km-KH) voice pack. When the target
+   language voice is missing, fall back to en-US (universally available) and
+   speak an English version of the text — the user at least hears the digits. */
+function speakBrowserSmart(text: string, lang: TtsLang, fallbackEnText: string): boolean {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
+  const Utterance = (window as { SpeechSynthesisUtterance?: new (t: string) => SpeechSynthesisUtterance })
+    .SpeechSynthesisUtterance;
+  if (typeof Utterance !== 'function') return false;
+  try {
+    window.speechSynthesis.cancel();
+    const ss = window.speechSynthesis as SpeechSynthesis & { getVoices?: () => SpeechSynthesisVoice[] };
+    const voices = ss.getVoices?.() ?? [];
+    let voice = voices.find((v) => VOICE_RE[lang].test(v.lang))
+      ?? voices.find((v) => v.lang === LANG_TAG[lang]);
+    let spokenText = text;
+    let spokenLang = LANG_TAG[lang];
+    if (!voice && lang !== 'en') {
+      // No voice for target language — fall back to English.
+      voice = voices.find((v) => /^en/i.test(v.lang)) ?? voices.find((v) => v.lang === 'en-US');
+      if (voice) {
+        spokenText = fallbackEnText;
+        spokenLang = 'en-US';
+      }
+    }
+    const utter = new Utterance(spokenText);
+    utter.lang = spokenLang;
+    utter.rate = SPEECH_RATE;
+    utter.pitch = 1;
+    if (voice) utter.voice = voice;
+    window.speechSynthesis.speak(utter);
+    return true;
+  } catch {
+    return false;
+  }
+}
 /* ─── Amount formatting per language ────────────────────────────────────────
    Khmer amounts use Khmer numerals (០១២៣៤៥៦៧៨៩) to match the official ABA
    Paysong style, e.g. "ទឹកប្រាក់ចំនួន ១០ ដុល្លា បានវេរចេញ សូមបញ្ជាក់". */
@@ -188,6 +277,7 @@ function buildConfirmText(lang: TtsLang, amount: number, currency: 'USD' | 'KHR'
 
 /** Amount-review announcement (spoken when the user taps Confirm). */
 export function speakTransferConfirm(amount: number, currency: 'USD' | 'KHR', lang: TtsLang): boolean {
+  playPaySongChime();
   return speakBrowser(buildConfirmText(lang, amount, currency), lang);
 }
 
@@ -197,9 +287,11 @@ export async function speakTransferSuccessSmart(
   amount: number,
   currency: 'USD' | 'KHR',
 ): Promise<void> {
+  playPaySongChime();
   const text = buildSuccessText(lang, amount, currency);
+  const enText = buildSuccessText('en', amount, currency);
   const ok = await playServerTts(text);
-  if (!ok) speakBrowser(text, lang);
+  if (!ok) speakBrowserSmart(text, lang, enText);
 }
 
 /** Incoming-payment (PaySound) announcement — server TTS first, browser fallback.
@@ -210,8 +302,9 @@ export async function speakReceivedSmart(
   lang: TtsLang,
 ): Promise<void> {
   const text = buildReceivedText(lang, amount, currency);
+  const enText = buildReceivedText('en', amount, currency);
   const ok = await playServerTts(text);
-  if (!ok) speakBrowser(text, lang);
+  if (!ok) speakBrowserSmart(text, lang, enText);
 }
 
 /* Kept for backward compatibility (browser-only). Prefer the *Smart versions. */

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
 import PinLock from '@/components/PinLock';
 import { ensureIdCard, getUser, updateUser } from '@/lib/userStore';
+import { endSession } from '@/lib/authFlow';
 import {
   X,
   Pencil,
@@ -14,6 +15,7 @@ import {
   Phone,
   FileText,
   Briefcase,
+  LogOut,
 } from 'lucide-react';
 
 /* ─── Grey/white cartoon cat avatar (Tom style, same as Home/Settings) ─── */
@@ -143,6 +145,12 @@ export default function Profile() {
   };
 
   const keys = Object.keys(DEFAULTS) as FieldKey[];
+  const handleLogout = () => {
+    endSession();
+    try { sessionStorage.removeItem('aba.pin.unlocked'); } catch { /* ignore */ }
+    try { sessionStorage.removeItem('aba.profile.unlocked'); } catch { /* ignore */ }
+    setLocation('/auth/start');
+  };
 
   const allRows = [
     {
@@ -329,6 +337,17 @@ export default function Profile() {
       </div>
 
       {/* ── Version + compliance ──────────────────────────────────── */}
+      {/* ── Log out ───────────────────────────────────────────────── */}
+      <div className="px-4 pb-2">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full h-[54px] rounded-2xl bg-white shadow-[0_4px_18px_rgba(0,0,0,0.05)] flex items-center gap-3 px-4 text-left active:bg-[#FFF5F5]"
+        >
+          <span className="text-[#D64545] shrink-0"><LogOut className="w-[21px] h-[21px]" strokeWidth={1.8} /></span>
+          <span className="flex-1 text-[15px] font-semibold text-[#D64545]">ចាកចេញ · Log out</span>
+        </button>
+      </div>
       <div className="mx-auto w-full max-w-[430px] px-5 pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
