@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wallet Testnet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f6fa; color: #1a1a2e; min-height: 100vh; }
+  .container { max-width: 480px; margin: 0 auto; padding: 20px; }
+  .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 16px; }
+  h1 { font-size: 22px; margin-bottom: 8px; }
+  .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
+  label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; margin-top: 14px; }
+  input { width: 100%; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; outline: none; }
+  input:focus { border-color: #4f6ef7; }
+  button { width: 100%; padding: 13px; background: #4f6ef7; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 20px; }
+  button:hover { background: #3d5ce0; }
+  .error { color: #e74c3c; font-size: 13px; margin-top: 10px; display: none; }
+  .balance-card { background: linear-gradient(135deg, #4f6ef7, #7c3aed); color: #fff; border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .balance-label { font-size: 13px; opacity: 0.8; }
+  .balance-amount { font-size: 32px; font-weight: 700; margin-top: 6px; }
+  .balance-name { font-size: 14px; opacity: 0.9; margin-top: 8px; }
+  .tx-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .tx-header h2 { font-size: 16px; }
+  .tx-count { font-size: 12px; color: #888; }
+  .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+  .tx-item:last-child { border-bottom: none; }
+  .tx-left { flex: 1; min-width: 0; }
+  .tx-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx-date { font-size: 12px; color: #999; margin-top: 3px; }
+  .tx-amount { font-weight: 600; font-size: 15px; margin-left: 12px; }
+  .credit { color: #10b981; }
+  .debit { color: #ef4444; }
+  .logout { background: #f0f0f0; color: #555; margin-top: 12px; }
+  .logout:hover { background: #e0e0e0; }
+  .hidden { display: none; }
+  .badge { display: inline-block; background: #fef3c7; color: #92400e; font-size: 11px; padding: 3px 8px; border-radius: 6px; margin-left: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Login -->
+  <div id="loginView" class="card">
+    <h1>Wallet Testnet <span class="badge">TEST</span></h1>
+    <div class="subtitle">pgLite demo · 60 seeded transactions</div>
+    <label>Phone Number</label>
+    <input id="phone" type="text" placeholder="0979935561" value="0979935561">
+    <label>PIN</label>
+    <input id="pin" type="password" placeholder="123456" value="123456">
+    <div class="error" id="loginError">Invalid phone or PIN</div>
+    <button onclick="login()">Login</button>
+    <div style="margin-top:16px; font-size:12px; color:#999; text-align:center;">
+      Demo account: 0979935561 / PIN 123456
+    </div>
+  </div>
+
+  <!-- Wallet -->
+  <div id="walletView" class="hidden">
+    <div class="balance-card">
+      <div class="balance-label">Available Balance</div>
+      <div class="balance-amount" id="balance">$0.00</div>
+      <div class="balance-name" id="custName"></div>
+    </div>
+    <div class="card">
+      <div class="tx-header">
+        <h2>Transaction History</h2>
+        <span class="tx-count" id="txCount"></span>
+      </div>
+      <div id="txList"></div>
+    </div>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<script>
+let currentPhone = '';
+
+async function login() {
+  const phone = document.getElementById('phone').value.trim();
+  const pin = document.getElementById('pin').value.trim();
+  const err = document.getElementById('loginError');
+  err.style.display = 'none';
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ phone, pin })
+    });
+    const data = await r.json();
+    if (!r.ok) { err.style.display = 'block'; return; }
+    currentPhone = phone;
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('walletView').classList.remove('hidden');
+    document.getElementById('balance').textContent = '$' + Number(data.customer.balance).toFixed(2);
+    document.getElementById('custName').textContent = data.customer.name + ' · ' + data.customer.phone;
+    await loadTransactions();
+  } catch(e) { err.style.display = 'block'; }
+}
+
+async function loadTransactions() {
+  const r = await fetch('/api/wallet/transactions-by-phone?phone=' + encodeURIComponent(currentPhone));
+  const data = await r.json();
+  document.getElementById('txCount').textContent = data.count + ' records';
+  const list = document.getElementById('txList');
+  list.innerHTML = data.transactions.map(t => {
+    const sign = t.direction === 'credit' ? '+' : '-';
+    const cls = t.direction === 'credit' ? 'credit' : 'debit';
+    const d = new Date(t.created_at);
+    const dateStr = d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}) + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    return `<div class="tx-item">
+      <div class="tx-left">
+        <div class="tx-name">${t.counterparty || '-'}</div>
+        <div class="tx-date">${dateStr} · ${t.reference}</div>
+      </div>
+      <div class="tx-amount ${cls}">${sign}$${Number(t.amount).toFixed(2)}</div>
+    </div>`;
+  }).join('');
+}
+
+function logout() {
+  currentPhone = '';
+  document.getElementById('walletView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
