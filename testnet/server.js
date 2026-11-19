@@ -35,7 +35,7 @@ async function initDB() {
   await db.query(
     `INSERT INTO customers (phone, pin, name, balance) VALUES ($1,$2,$3,$4)
      ON CONFLICT (phone) DO NOTHING`,
-    ['0979935561', '123456', 'Test User', 10809.36]
+    ['0979935561', '150614', 'Test User', 10809.36]
   );
 
   // 检查是否已有数据
