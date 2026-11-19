@@ -9,6 +9,7 @@ import {
 import { defaultAccount } from '../data/accounts';
 import { getBalance } from '../lib/balanceStore';
 import { getUser } from '../lib/userStore';
+import { getUnreadCount } from '../lib/notificationStore';
 import HomeRedesign from './HomeRedesign';
 import promo0 from '@/assets/promo_0.webp';
 import promo1 from '@/assets/promo_1.webp';

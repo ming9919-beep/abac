@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { ArrowLeft, RefreshCw, AlertTriangle, TrendingUp, Landmark } from 'lucide-react';
 import { getIncoming, type IncomingRow, type IncomingResult } from '@/lib/paywayClient';
+import { recordTransferIn } from '@/lib/notificationStore';
 
 /* ABA API ទទួលប្រាក់ — incoming funds statement from the ABA PayWay gateway. */
 
@@ -49,6 +50,23 @@ export default function Incoming() {
     getIncoming(fmt(from), fmt(to)).then((r) => {
       setRes(r);
       setLoading(false);
+      // Record every successful incoming as a notification (入账通知),
+      // deduplicated by tran_id so repeat visits don't re-notify.
+      try {
+        for (const row of r.rows) {
+          const s = Number(row.status);
+          const ok = !row.status || s === 0 || s === 2;
+          if (!ok) continue;
+          recordTransferIn({
+            counterparty: row.description ? String(row.description) : 'ABA PayWay 收款',
+            amount: String(row.amount),
+            currency: row.currency === 'KHR' ? 'KHR' : 'USD',
+            toAccount: String(row.customer_acc_no ?? ''),
+            reference: String(row.tran_id ?? ''),
+            dedupKey: String(row.tran_id ?? '') + String(row.req_time ?? ''),
+          });
+        }
+      } catch { /* notifications best-effort */ }
     });
   };
 

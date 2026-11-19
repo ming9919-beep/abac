@@ -4,6 +4,7 @@
    statement (AccountDetail list) and its receipt (TransactionDetail).
    Static reference transactions (ids 1–12) stay in their page modules.
 ────────────────────────────────────────────────────────────────────────────── */
+import { recordTransferOut } from './notificationStore';
 
 export type TxAvatar = {
   type: 'store' | 'initials';
@@ -216,6 +217,14 @@ export function addTxn(input: NewTxnInput): StoredTxn {
   s.list.push(row);
   s.details[String(id)] = detail;
   save(s);
+  // Also surface this transfer in the notification center (转出通知).
+  recordTransferOut({
+    counterparty: input.name,
+    amount: input.deductAmount ?? input.amount,
+    currency: (input.deductCurrency ?? input.currency) as 'USD' | 'KHR',
+    fromAccount: spacedAccount(input.fromAccountNumber),
+    reference: trxId,
+  });
   return row;
 }
 

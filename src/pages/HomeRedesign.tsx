@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import {
   ArrowRight, Bell, ChartNoAxesColumnIncreasing, CreditCard, Eye, EyeOff, Gift,
@@ -8,6 +8,7 @@ import {
 import { defaultAccount } from '@/data/accounts';
 import { getBalance } from '@/lib/balanceStore';
 import { getUser } from '@/lib/userStore';
+import { getUnreadCount } from '@/lib/notificationStore';
 import { loadTheme, saveTheme, type ThemeConfig } from '@/lib/homeThemes';
 import { ThemeModal } from '@/components/home/ThemeModal';
 import { ThemeAvatar } from '@/components/home/ThemeAvatar';
@@ -57,6 +58,8 @@ export default function HomeRedesign({ onSwitch }: { onSwitch: () => void }) {
   const [showBalance, setShowBalance] = useState(true);
   const [theme, setTheme] = useState<ThemeConfig>(() => loadTheme());
   const [themeOpen, setThemeOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  useEffect(() => { setUnread(getUnreadCount()); }, []);
 
   const isSixties = theme.id === 'sixties';
   const balance = Number(getBalance(defaultAccount.id, defaultAccount.balance) ?? defaultAccount.balance);
@@ -97,7 +100,11 @@ export default function HomeRedesign({ onSwitch }: { onSwitch: () => void }) {
           </button>
           <button type="button" aria-label="Notifications" onClick={() => setLocation('/notifications')} className="relative active:scale-95 transition-transform">
             <Bell size={21} />
-            <span className="absolute -right-0.5 -top-0.5 h-[7px] w-[7px] rounded-full border border-[#f7ead1] bg-[#e55c4e]" />
+            {unread > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-[#E8002D] text-white text-[10px] font-bold flex items-center justify-center border-2 border-[#f7ead1]">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
           </button>
           <button
             type="button"

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Bell, Clock, CheckCircle, AlertCircle, Gift, Car, CreditCard } from 'lucide-react';
+import { ArrowLeft, Bell, Clock, CheckCircle, AlertCircle, Gift, Car, CreditCard, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { getTxNotifications, groupByDate, markAllRead, type TxNotification } from '@/lib/notificationStore';
 
 /* ─── Notification types ────────────────────────────────────────────────────── */
 type Notification = {
@@ -221,6 +222,45 @@ const NotificationItem = ({ item }: { item: Notification }) => {
   );
 };
 
+/* ─── Real transaction notification (debit = 转出, credit = 入账) ─────────── */
+const TxNotificationItem = ({ item }: { item: TxNotification }) => {
+  const isDebit = item.direction === 'debit';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl p-4 mb-3 shadow-sm"
+    >
+      <div className="flex gap-3">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+          isDebit ? 'bg-[#FDECEA]' : 'bg-[#E8F5E9]'
+        }`}>
+          {isDebit
+            ? <ArrowUpRight className="w-5 h-5 text-[#E8002D]" strokeWidth={2} />
+            : <ArrowDownLeft className="w-5 h-5 text-[#2E7D32]" strokeWidth={2} />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[14px] font-bold text-gray-900 leading-snug">
+              {isDebit ? `បានបញ្ជូនទៅ ${item.counterparty}` : `បានទទួលពី ${item.counterparty}`}
+            </p>
+            <span className={`text-[14px] font-extrabold shrink-0 ${isDebit ? 'text-[#E8002D]' : 'text-[#2E7D32]'}`}>
+              {isDebit ? '-' : '+'}{item.amount} {item.currency}
+            </span>
+          </div>
+          <p className="text-[12px] text-gray-500 mt-1.5 leading-relaxed">
+            {isDebit
+              ? `${item.amount} ${item.currency} was debited${item.account ? ` from account ${item.account}` : ''}. Entry# ${item.reference}`
+              : `${item.amount} ${item.currency} was credited${item.account ? ` to account ${item.account}` : ''}. Entry# ${item.reference}`}
+          </p>
+          {item.timeLabel && (
+            <p className="text-[11px] text-gray-400 font-medium mt-1">{item.timeLabel}</p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 /* ─── Tabs ──────────────────────────────────────────────────────────────────── */
 const TABS = [
   { id: 'important', label: 'ដំណឹងសំខាន់' },
@@ -232,25 +272,57 @@ const TABS = [
 export default function Notifications() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('important');
-
-  const renderContent = () => {
-    if (activeTab === 'important') {
-      return importantNotifications.map((group) => (
-        <div key={group.date} className="mb-5">
-          <p className="text-[13px] font-bold text-gray-500 mb-2.5 px-1">{group.date}</p>
-          {group.items.map((item) => (
-            <NotificationItem key={item.id} item={item} />
-          ))}
-        </div>
-      ));
-    }
-    if (activeTab === 'transactions') {
+  const [realTxns, setRealTxns] = useState<TxNotification[]>([]);
+  useEffect(() => {
+    setRealTxns(getTxNotifications());
+    markAllRead();
+  }, []);
+  const realGroups = groupByDate(realTxns);
+  const renderTxGroups = () => {
+    if (realTxns.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-20">
           <Clock className="w-12 h-12 text-gray-300 mb-3" strokeWidth={1.5} />
-          <p className="text-[14px] text-gray-400 font-medium">មិនមានប្រតិបត្តិការ</p>
+          <p className="text-[14px] text-gray-400 font-medium">មិនមានប្រតិបត្តិការ · 暂无交易记录</p>
+          <p className="text-[11px] text-gray-300 mt-1">转出 / 入账成功后会自动显示在这里</p>
         </div>
       );
+    }
+    return realGroups.map((group) => (
+      <div key={group.date} className="mb-5">
+        <p className="text-[13px] font-bold text-gray-500 mb-2.5 px-1">{group.date}</p>
+        {group.items.map((item) => (
+          <TxNotificationItem key={item.id} item={item} />
+        ))}
+      </div>
+    ));
+  };
+
+  const renderContent = () => {
+    if (activeTab === 'important') {
+      return (
+        <>
+          {realTxns.length > 0 && (
+            <div className="mb-5">
+              <p className="text-[13px] font-bold text-gray-500 mb-2.5 px-1">{realGroups[0].date}</p>
+              {realGroups[0].items.slice(0, 5).map((item) => (
+                <TxNotificationItem key={item.id} item={item} />
+              ))}
+            </div>
+          )}
+          {importantNotifications.map((group) => (
+            <div key={group.date} className="mb-5">
+              <p className="text-[13px] font-bold text-gray-500 mb-2.5 px-1">{group.date}</p>
+              {group.items.map((item) => (
+                <NotificationItem key={item.id} item={item} />
+              ))}
+            </div>
+          ))}
+        </>
+      );
+    }
+    if (activeTab === 'transactions') {
+      return renderTxGroups();
     }
     return promoNotifications.map((group) => (
       <div key={group.date} className="mb-5">
