@@ -147,7 +147,18 @@ async function migratePglite(db: PgliteLike): Promise<void> {
 async function createPglite(): Promise<PoolLike> {
   const { PGlite } = await import("@electric-sql/pglite");
   const dir = process.env.WALLET_PGDATA || ".wallet-pglite";
-  const db = new PGlite(dir) as unknown as PgliteLike;
+  // 免费层 512Mi 内存约束：压低 Postgres 共享内存/工作内存，避免 WASM 堆膨胀触发 OOM Kill；
+  // relaxedDurability 适合 /tmp 下的演示库（重启即重建），减少 fsync 开销。
+  const db = new PGlite(dir, {
+    relaxedDurability: true,
+    postgresqlconf: [
+      "shared_buffers=8MB",
+      "work_mem=1MB",
+      "effective_cache_size=8MB",
+      "maintenance_work_mem=4MB",
+      "max_connections=8",
+    ],
+  }) as unknown as PgliteLike;
   await db.waitReady;
 
   if (process.env.WALLET_AUTO_MIGRATE !== "false") {

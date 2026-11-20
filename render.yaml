@@ -1,17 +1,27 @@
-# Render.com blueprint — Node web service for the ABA001 demo.
+# Render.com blueprint — Node web service for the ABA wallet demo.
 #
-# This file documents the service that is already running at
-# https://aba001.onrender.com (created via the Render API). Opening
-# New → Blueprint on this repo would create an equivalent service.
+# The live service created via the Render API is:
+#   name: abac-wallet   url: https://abac-wallet.onrender.com
+# (https://aba001.onrender.com is retired and returns x-render-routing: no-server;
+#  do not test that old hostname.)
+# Opening New → Blueprint on this repo would create an equivalent service.
 #
-# Why a Node service rather than a static site: GitHub Pages is a plain static
-# host, but on Render we get a real process — the tiny http server in
-# start-prod.cjs gives SPA fallback (/accounts, /transfer/send …) plus a
-# /api/health endpoint. Build uses BASE_PATH=/ (root domain), unlike the
-# /ABA001/ build used for GitHub Pages.
+# Why a Node service rather than a static site: we get a real process — the tiny
+# http server in start-prod.cjs gives SPA fallback (/accounts, /transfer/send …),
+# a /api/health endpoint, and a proxy to the optional wallet API backend.
+# Build uses BASE_PATH=/ (root domain), unlike the /ABA001/ build used for GitHub Pages.
+#
+# Memory note (free 512Mi):
+# - Frontend static server is the primary process and must stay up.
+# - Backend (pglite WASM) runs under a supervisor loop; if it is OOM-killed the
+#   frontend keeps serving. Set BACKEND_ENABLED=false in the dashboard to skip the
+#   backend entirely; the frontend has a full offline (localStorage) fallback.
+# - WALLET_ID_PEPPER / WALLET_ENCRYPTION_KEY are auto-generated at boot when unset
+#   (data lives in /tmp and resets on free-tier restarts).
+
 services:
   - type: web
-    name: aba001
+    name: abac-wallet
     runtime: node
     plan: free
     region: singapore
@@ -31,3 +41,6 @@ services:
         value: mock
       - key: BAKONG_MODE
         value: mock
+      # Backend wallet API on/off. Set "false" if the free instance shows OOM events.
+      - key: BACKEND_ENABLED
+        value: "true"

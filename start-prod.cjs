@@ -14,7 +14,11 @@ const pushSubs = new Map(); // accountDigits -> PushSubscription JSON
 
 const PORT = Number(process.env.PORT || process.argv[2] || 8080);
 const ROOT = path.join(__dirname, 'dist', 'public');
-const UPSTREAM = { host: '127.0.0.1', port: 5200 };
+// 后端上游：默认本机 5200；拆分服务时可用 API_UPSTREAM_HOST / API_UPSTREAM_PORT 覆盖
+const UPSTREAM = {
+  host: process.env.API_UPSTREAM_HOST || '127.0.0.1',
+  port: Number(process.env.API_UPSTREAM_PORT || 5200),
+};
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -33,10 +37,17 @@ function proxyApi(req, res) {
       pRes.pipe(res);
     }
   );
+  // 后端不可达/卡死时快速失败，由前端走本地兜底；避免 Render 边缘层 502 整站不可用
+  proxyReq.setTimeout(15000, () => {
+    proxyReq.destroy(new Error('gateway timeout'));
+  });
   proxyReq.on('error', () => {
+    if (res.headersSent) return;
     res.writeHead(502, { 'content-type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ error: 'gateway offline' }));
   });
+  // 客户端断开时清理上游连接（注意：不能监听 req 的 close，请求体发完即触发会误杀）
+  res.on('close', () => { if (!res.writableEnded) proxyReq.destroy(); });
   req.pipe(proxyReq);
 }
 
@@ -47,7 +58,7 @@ const server = http.createServer((req, res) => {
   // Health check (Render)
   if (p === '/api/health') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
-    return res.end(JSON.stringify({ ok: true, service: 'aba001', ts: Date.now() }));
+    return res.end(JSON.stringify({ ok: true, service: 'abac-wallet', ts: Date.now() }));
   }
 
   // API 代理
