@@ -15,8 +15,8 @@ services:
     runtime: node
     plan: free
     region: singapore
-    buildCommand: corepack enable && pnpm install --no-frozen-lockfile && PORT=5173 BASE_PATH=/ pnpm build
-    startCommand: node start-prod.cjs
+    buildCommand: corepack enable && pnpm install --no-frozen-lockfile && PORT=5173 BASE_PATH=/ pnpm build && pnpm --filter @workspace/api-server build
+    startCommand: bash start-render.sh
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -25,3 +25,9 @@ services:
         value: /
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        value: pglite:
+      - key: PAYWAY_MODE
+        value: mock
+      - key: BAKONG_MODE
+        value: mock
