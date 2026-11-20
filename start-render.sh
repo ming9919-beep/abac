@@ -17,7 +17,7 @@ echo "[start-render] backend api-server started (pid $BACKEND_PID, port 5200)"
 
 # 等后端就绪（最多 15 秒）
 for i in $(seq 1 30); do
-  if curl -sf http://127.0.0.1:5200/api/health >/dev/null 2>&1; then
+  if curl -sf http://127.0.0.1:5200/api/healthz >/dev/null 2>&1; then
     echo "[start-render] backend health check OK after ${i}s"
     break
   fi
