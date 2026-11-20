@@ -8,6 +8,7 @@ import { deductBalance } from '@/lib/balanceStore';
 import { BANK_MAP } from '@/lib/khqr';
 import BankLogo from '@/components/BankLogo';
 import { getTtsLang, speakTransferSuccessSmart } from '@/lib/tts';
+import { notifyReceiver } from '@/lib/realtimeNotify';
 import pinLockLogo from '@/assets/pin-lock-logo.png';
 
 import { PAYMENT_PIN } from '@/lib/userStore';
@@ -547,6 +548,14 @@ export default function PayFlow() {
         // language (ខ្មែរ / 中文 / English); Khmer uses the server TTS API when
         // reachable, with a 4s timeout + browser TTS fallback guaranteeing sound.
         speakTransferSuccessSmart(getTtsLang(), Number(amountStr || '0.01'), currency).catch(() => {});
+        // Push realtime "incoming transfer" notification to the payee's device.
+        notifyReceiver({
+          payeeAccount,
+          amount: amountStr || '0.01',
+          currency,
+          fromName: accounts[fromIdx % accounts.length].name,
+          fromAccount: accounts[fromIdx % accounts.length].number,
+        }).catch(() => {});
       }
     }
   }, [step]);
