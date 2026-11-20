@@ -9,6 +9,7 @@ import { BANK_MAP } from '@/lib/khqr';
 import BankLogo from '@/components/BankLogo';
 import { getTtsLang, speakTransferSuccessSmart } from '@/lib/tts';
 import { notifyReceiver } from '@/lib/realtimeNotify';
+import QRCode from 'qrcode';
 import pinLockLogo from '@/assets/pin-lock-logo.png';
 
 import { PAYMENT_PIN } from '@/lib/userStore';
@@ -255,8 +256,18 @@ const SuccessScreen = ({
   bankColor: string;
   bankCode: string;
   fromNumber: string;
+  payeeAccount: string;
 }) => {
   const [, setLocation] = useLocation();
+  const [notifyQr, setNotifyQr] = useState<string>('');
+  const notifyTopic = 'abac-pay-' + (payeeAccount || '').replace(/\D/g, '');
+  const notifyUrl = `https://ntfy.sh/${notifyTopic}`;
+  useEffect(() => {
+    if (!payeeAccount) return;
+    QRCode.toDataURL(notifyUrl, { width: 320, margin: 1, errorCorrectionLevel: 'M' })
+      .then(setNotifyQr)
+      .catch(() => {});
+  }, [payeeAccount, notifyUrl]);
   const now = new Date();
   const KM_MONTHS = ['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
   const stamp = `${now.getDate()} ${KM_MONTHS[now.getMonth()]} | ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -335,6 +346,32 @@ const SuccessScreen = ({
           ))}
         </div>
       </div>
+
+      {/* Notify payee — QR + link works on ANY phone browser, no app install needed */}
+      {notifyQr && (
+        <div className="w-full max-w-[360px] mt-5 bg-white rounded-[22px] shadow-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+            <p className="text-[14px] font-bold text-gray-800">បានជូនដំណឹងដល់អ្នកទទួល</p>
+            <span className="text-[11px] text-gray-500 ml-auto">Recipient notified</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <img src={notifyQr} alt="Notify QR" className="w-24 h-24 rounded-lg border border-gray-200" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-gray-600 leading-snug mb-2">
+                អ្នកទទួលស្កេន QR ឬបើកតំណ ឲ្យមើលការជូនដំណឹង
+                <br />(No app install needed — any browser works)
+              </p>
+              <button
+                onClick={() => { try { navigator.clipboard?.writeText(notifyUrl); } catch {} }}
+                className="w-full text-[11px] font-bold text-white bg-[#0E5A8A] rounded-lg py-2 px-3 active:opacity-70 truncate"
+              >
+                Copy link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Share / Download */}
       <div className="flex gap-8 mt-6">
@@ -584,6 +621,7 @@ export default function PayFlow() {
         bankShort={bankShort}
         bankColor={bankColor} bankCode={bankCode}
         fromNumber={accounts[fromIdx % accounts.length].number}
+        payeeAccount={payeeAccount}
       />
     );
 
