@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, QrCode, BarChart2, MoreVertical, ChevronDown, Store, FileText, Eye, EyeOff, Info } from 'lucide-react';
 import { useLocation, useParams } from 'wouter';
 import { accounts } from '../data/accounts';
+import { statement3m } from '../data/statement3m';
 import { getDynamicTxns, todayStatementDate } from '../lib/txnStore';
 import { getBalance } from '../lib/balanceStore';
 
@@ -127,6 +128,7 @@ const usdByDate: DateGroup[] = [
     { id: 47, name: 'ABA Bank Fee', amount: '-422.91', type: 'debit', avatarKind: 'khqr', avatarColor: '#E8002D',  },
     { id: 48, name: 'ACLEDA Bank Transfer', amount: '+575.74', type: 'credit', avatarKind: 'initials', initials: 'AB', avatarColor: '#2563EB', badge: 'check' },
   ] },
+  ...statement3m,
 ];
 
 /* ── Static statement data by date (KHR) ── */
