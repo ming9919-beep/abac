@@ -25,9 +25,10 @@ const LANG_TAG: Record<TtsLang, string> = { zh: 'zh-CN', en: 'en-US', km: 'km-KH
 const VOICE_RE: Record<TtsLang, RegExp> = { zh: /^zh/i, en: /^en/i, km: /^km/i };
 const SPEECH_RATE = 1;
 
-/* ─── Server TTS endpoint (cambet89.online) — accepts raw `text`, returns MP3 */
-const SERVER_TTS_ENDPOINT = 'https://cambet89.online/api/khmer-tts';
-const SERVER_TTS_TIMEOUT = 1500;
+/* ─── Server TTS endpoint (same-origin proxy in start-prod.cjs → Google Translate TTS).
+   Accepts GET ?text=...&lang=km|en|zh, returns MP3. Free, no API key. */
+const SERVER_TTS_ENDPOINT = '/api/tts';
+const SERVER_TTS_TIMEOUT = 6000;
 /* ─── Local pre-recorded Khmer audio (deployed to /audio/*.mp3). Played first
    for Khmer announcements when the amount matches — guaranteed audible, no
    network, no voice-pack dependency. Only a few amounts are pre-recorded. */
@@ -127,16 +128,12 @@ export function playPaySongChime(): void {
 /* ─── Shared: send text to the server, play the returned MP3. Returns true on
    success; on ANY failure (network, timeout, play rejection) returns false so
    the caller can fall back to browser TTS. */
-async function playServerTts(text: string): Promise<boolean> {
+async function playServerTts(text: string, lang: TtsLang = 'km'): Promise<boolean> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), SERVER_TTS_TIMEOUT);
   try {
-    const resp = await fetch(SERVER_TTS_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.slice(0, 500) }),
-      signal: ctrl.signal,
-    });
+    const url = `${SERVER_TTS_ENDPOINT}?text=${encodeURIComponent(text.slice(0, 200))}&lang=${lang}`;
+    const resp = await fetch(url, { method: 'GET', signal: ctrl.signal });
     clearTimeout(timer);
     if (!resp.ok) return false;
     // MIME guard: a suspended/dead TTS server often returns an HTML error
@@ -313,7 +310,7 @@ export async function speakTransferSuccessSmart(
   }
   const text = buildSuccessText(lang, amount, currency);
   const enText = buildSuccessText('en', amount, currency);
-  const ok = await playServerTts(text);
+  const ok = await playServerTts(text, lang);
   if (!ok) speakBrowserSmart(text, lang, enText);
 }
 
@@ -331,7 +328,7 @@ export async function speakReceivedSmart(
   }
   const text = buildReceivedText(lang, amount, currency);
   const enText = buildReceivedText('en', amount, currency);
-  const ok = await playServerTts(text);
+  const ok = await playServerTts(text, lang);
   if (!ok) speakBrowserSmart(text, lang, enText);
 }
 

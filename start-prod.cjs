@@ -1,6 +1,7 @@
 // 生产环境静态服务器 + API 代理
 // 用法: node start-prod.js [端口]
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
@@ -43,6 +44,30 @@ const server = http.createServer((req, res) => {
   }
 
   // API 代理
+  // TTS proxy: /api/tts?text=...&lang=km|en|zh → Google Translate TTS (MP3, free, no key)
+  if (p === '/api/tts') {
+    const text = (url.searchParams.get('text') || '').slice(0, 200);
+    const lang = (url.searchParams.get('lang') || 'km').toLowerCase();
+    const langMap = { km: 'km', en: 'en', zh: 'zh-CN', 'zh-cn': 'zh-CN' };
+    const tl = langMap[lang] || 'km';
+    if (!text) { res.writeHead(400); return res.end('missing text'); }
+    const ttsUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=' + encodeURIComponent(tl) + '&q=' + encodeURIComponent(text);
+    const doGet = (u, redirects) => {
+      if (redirects > 3) { res.writeHead(502); return res.end('too many redirects'); }
+      const r = https.get(u, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (pRes) => {
+        if (pRes.statusCode === 302 || pRes.statusCode === 301) {
+          pRes.resume();
+          return doGet(pRes.headers.location, redirects + 1);
+        }
+        res.writeHead(pRes.statusCode || 200, { 'content-type': 'audio/mpeg', 'cache-control': 'public, max-age=86400' });
+        pRes.pipe(res);
+      });
+      r.on('error', () => { res.writeHead(502); res.end('tts upstream error'); });
+      r.setTimeout(8000, () => { r.destroy(); if (!res.headersSent) { res.writeHead(504); res.end('tts timeout'); } });
+    };
+    doGet(ttsUrl, 0);
+    return;
+  }
   if (p === '/api' || p.startsWith('/api/')) return proxyApi(req, res);
 
   let rel = p;
