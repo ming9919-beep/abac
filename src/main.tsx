@@ -1,10 +1,15 @@
 import { createRoot } from 'react-dom/client';
 
 import App from './App';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 import './index.css';
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
 
 /* PWA service worker: only register for production builds. In dev the
    cache-first worker serves stale modules, so unregister it and clear caches. */
