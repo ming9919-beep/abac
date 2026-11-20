@@ -27,7 +27,26 @@ const SPEECH_RATE = 1;
 
 /* ─── Server TTS endpoint (cambet89.online) — accepts raw `text`, returns MP3 */
 const SERVER_TTS_ENDPOINT = 'https://cambet89.online/api/khmer-tts';
-const SERVER_TTS_TIMEOUT = 4000;
+const SERVER_TTS_TIMEOUT = 1500;
+/* ─── Local pre-recorded Khmer audio (deployed to /audio/*.mp3). Played first
+   for Khmer announcements when the amount matches — guaranteed audible, no
+   network, no voice-pack dependency. Only a few amounts are pre-recorded. */
+const LOCAL_KHMER_AUDIO: Record<string, string> = {
+  '100|USD|success': '/audio/khmer-transfer-success-100USD.mp3',
+  '88|USD|success': '/audio/khmer-transfer-success-88USD.mp3',
+};
+async function playLocalKhmerAudio(amount: number, currency: 'USD' | 'KHR', kind: 'success' | 'received'): Promise<boolean> {
+  const key = `${Math.round(amount)}|${currency}|${kind}`;
+  const path = LOCAL_KHMER_AUDIO[key];
+  if (!path) return false;
+  try {
+    const audio = new Audio(path);
+    await audio.play();
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /* ─── Audio unlock: mobile browsers block programmatic audio.play() until the
    user has interacted with the page. On the first pointer/touch/click we play
@@ -281,26 +300,35 @@ export function speakTransferConfirm(amount: number, currency: 'USD' | 'KHR', la
   return speakBrowser(buildConfirmText(lang, amount, currency), lang);
 }
 
-/** Success announcement — server TTS first, browser TTS fallback. */
+/** Success announcement — local Khmer audio first, then server TTS, then browser TTS fallback. */
 export async function speakTransferSuccessSmart(
   lang: TtsLang,
   amount: number,
   currency: 'USD' | 'KHR',
 ): Promise<void> {
   playPaySongChime();
+  if (lang === 'km') {
+    const localOk = await playLocalKhmerAudio(amount, currency, 'success');
+    if (localOk) return; // 本地高棉语音频播放成功，直接返回
+  }
   const text = buildSuccessText(lang, amount, currency);
   const enText = buildSuccessText('en', amount, currency);
   const ok = await playServerTts(text);
   if (!ok) speakBrowserSmart(text, lang, enText);
 }
 
-/** Incoming-payment (PaySound) announcement — server TTS first, browser fallback.
+/** Incoming-payment (PaySound) announcement — local Khmer audio first, then server TTS, then browser fallback.
  *  Used by the settings "test voice" button and any received-payment event. */
 export async function speakReceivedSmart(
   amount: number,
   currency: 'USD' | 'KHR',
   lang: TtsLang,
 ): Promise<void> {
+  playPaySongChime();
+  if (lang === 'km') {
+    const localOk = await playLocalKhmerAudio(amount, currency, 'received');
+    if (localOk) return;
+  }
   const text = buildReceivedText(lang, amount, currency);
   const enText = buildReceivedText('en', amount, currency);
   const ok = await playServerTts(text);
