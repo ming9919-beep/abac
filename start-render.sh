@@ -2,30 +2,34 @@
 # Render 启动脚本（免费 512Mi 实例）
 #
 # 架构要点：
-# 1. 前端静态服务器（start-prod.cjs）是主进程：它一直在线，即使后端异常也不整站 502。
-# 2. 后端 api-server 由守护循环托管：崩溃后自动重启；后端被 OOM Kill 不会拖垮前端。
-# 3. 后端默认开启（BACKEND_ENABLED=true）；免费层内存紧张时可在 Render 面板置 false，
-#    前端有完整离线兜底（本地注册/转账记录），关闭后端不影响演示流程。
-# 4. WALLET_ID_PEPPER / WALLET_ENCRYPTION_KEY 未配置时启动时自动生成。免费层数据目录在
-#    /tmp（实例重启即清空），所以每次启动换新密钥不会造成旧密文无法解密的问题。
+# 1. 前端静态服务器（start-prod.cjs）是主进程：一直在线；前端自带完整离线兜底
+#    （localStorage 注册 / 转账记录 / 通知），纯前端即可跑通全部演示流程。
+# 2. 后端 api-server（pglite WASM）默认关闭：实测两个 Node 进程 + WASM 数据库
+#    在免费 512Mi 上会被 cgroup OOM Kill 并连带整站 502。需要服务端持久化时，
+#    升级付费实例或拆成两个独立免费服务，再把 BACKEND_ENABLED 置为 true。
+# 3. 后端开启时由守护循环托管：崩溃自动重启；WALLET_ID_PEPPER / WALLET_ENCRYPTION_KEY
+#    缺失则启动时生成（数据在 /tmp，重启即清空，换新密钥不会遗留密文问题）。
 
 set -u
 
 RENDER_PORT="${PORT:-10000}"
-BACKEND_ENABLED="${BACKEND_ENABLED:-true}"
+# 免费层默认关后端；Render 面板或环境变量置 "true" 可开启（需更大内存）。
+BACKEND_ENABLED="${BACKEND_ENABLED:-false}"
 
-# ── 钱包数据库所需密钥（缺失则启动时生成演示值）──
-if [ -z "${WALLET_ID_PEPPER:-}" ]; then
-  export WALLET_ID_PEPPER="boot-pepper-$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
-fi
-if [ -z "${WALLET_ENCRYPTION_KEY:-}" ]; then
-  export WALLET_ENCRYPTION_KEY="$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")"
+# ── 钱包数据库所需密钥（仅后端开启时生成，缺失则启动时生成演示值）──
+if [ "$BACKEND_ENABLED" = "true" ]; then
+  if [ -z "${WALLET_ID_PEPPER:-}" ]; then
+    export WALLET_ID_PEPPER="boot-pepper-$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)"
+  fi
+  if [ -z "${WALLET_ENCRYPTION_KEY:-}" ]; then
+    export WALLET_ENCRYPTION_KEY="$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")"
+  fi
 fi
 
 # ── 前端静态服务器（主进程，常驻）──
 PORT="$RENDER_PORT" node start-prod.cjs &
 FRONTEND_PID=$!
-echo "[start-render] frontend started (pid $FRONTEND_PID, port $RENDER_PORT)"
+echo "[start-render] frontend started (pid $FRONTEND_PID, port $RENDER_PORT, backend=${BACKEND_ENABLED})"
 
 BACKEND_SUPERVISOR=""
 

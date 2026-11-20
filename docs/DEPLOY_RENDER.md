@@ -26,11 +26,14 @@
 
 ## 内存与 OOM（免费 512Mi）
 
-- 后端 pglite（WASM Postgres）初始化时内存最高；`db.ts` 已压低
-  `shared_buffers/work_mem` 等参数，并用 `--max-old-space-size=280` 限制 V8 堆。
-- 万一后端仍被 OOM Kill：前端继续在线，`/api/*` 返回 JSON 502，前端自动走本地兜底；
-  可在 Render 事件（Events）里看到 `oomKilled` 记录，此时把 `BACKEND_ENABLED` 置 `false`。
-- 代理 `proxyApi` 带 15 秒超时：后端卡死时快速返回 502，不会让 Render 边缘层 502 整站不可用。
+- **免费层默认 `BACKEND_ENABLED=false`**：实测 pglite WASM 后端 + 前端两个 Node 进程
+  会触发 cgroup `oomKilled`，整站间歇性 502。纯前端模式下注册/转账/通知均走
+  localStorage 兜底，演示流程完整可用。
+- 后端开启需满足其一：升级付费实例；或拆成两个免费服务（前端服务 + 独立后端服务，
+  前端用 `API_UPSTREAM_HOST/PORT` 指向后端公网地址）。
+- `db.ts` 已压低 `shared_buffers/work_mem` 等参数、`start-render.sh` 用
+  `--max-old-space-size=280` 限制 V8 堆，单后端内存约 370MB（本地实测）。
+- 代理 `proxyApi` 带 15 秒超时：后端卡死时快速返回 JSON 502，前端自动走本地兜底。
 
 ## 关键点
 

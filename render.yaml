@@ -41,6 +41,8 @@ services:
         value: mock
       - key: BAKONG_MODE
         value: mock
-      # Backend wallet API on/off. Set "false" if the free instance shows OOM events.
+      # Backend wallet API on/off. Free 512Mi cannot hold pglite WASM alongside the
+      # frontend (OOM kills the instance); keep "false" on free plan. Set "true" only
+      # on a paid instance or a split backend service.
       - key: BACKEND_ENABLED
-        value: "true"
+        value: "false"
