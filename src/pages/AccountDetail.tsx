@@ -242,7 +242,7 @@ export default function AccountDetail() {
   const [hideTxns, setHideTxns] = useState(false); // transaction records visible by default
 
   const staticGroups = account.currency === 'KHR' ? khrByDate : usdByDate;
-  const visibleGroups = showAll ? staticGroups : staticGroups.slice(0, 2);
+  const visibleGroups = showAll ? staticGroups : staticGroups.slice(0, 15);
   const hasMore = staticGroups.length > 2;
   const rawDynamic = getDynamicTxns().filter(
     (t) => (t.currency ?? 'USD') === (account.currency ?? 'USD')
