@@ -147,9 +147,9 @@ async function playServerTts(text: string, lang: TtsLang = 'km'): Promise<boolea
     if (blob.type && !blob.type.toLowerCase().startsWith('audio/') && !blob.type.includes('octet-stream')) {
       return false;
     }
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    const cleanup = () => { try { URL.revokeObjectURL(url); } catch { /* ignore */ } };
+    const objectUrl = URL.createObjectURL(blob);
+    const audio = new Audio(objectUrl);
+    const cleanup = () => { try { URL.revokeObjectURL(objectUrl); } catch { /* ignore */ } };
     audio.onended = cleanup;
     audio.onerror = () => { cleanup(); };
     // play() returns a promise; a rejection (e.g. autoplay block) must NOT
