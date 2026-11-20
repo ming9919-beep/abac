@@ -282,6 +282,23 @@ const SuccessScreen = ({ data, amount, currency, payeeAmount, payeeCurrency, onD
   isBakong: boolean; fromAccount?: Account;
 }) => {
   const [shared, setShared] = useState(false);
+  /* Defensive: if payee data is missing, still show a minimal success screen
+     instead of crashing on data.merchantName / data.bakongId.split() → blank. */
+  if (!data) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        className="absolute inset-0 z-50 bg-[#F7F5FF] flex flex-col items-center justify-center px-8 text-center"
+      >
+        <div className="w-20 h-20 rounded-full bg-[#22C55E]/15 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-10 h-10 text-[#22C55E]" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+        </div>
+        <p className="mt-5 text-[22px] font-extrabold text-gray-900">转账成功</p>
+        <p className="mt-2 text-[14px] text-gray-500">Transaction completed</p>
+        <button onClick={onDone} className="mt-8 px-8 py-3 rounded-2xl bg-[#7B4FE8] text-white font-bold text-[15px] active:opacity-80">完成</button>
+      </motion.div>
+    );
+  }
   const acct = fromAccount ?? defaultAccount;
   const amt = currency === 'KHR'
     ? Number(amount).toLocaleString() + ' ៛'
@@ -289,7 +306,8 @@ const SuccessScreen = ({ data, amount, currency, payeeAmount, payeeCurrency, onD
   const now = new Date();
   const txCode = String(Math.floor(10000000000 + Math.random() * 89999999999));
   const ref = '100FT' + String(Date.now()).slice(-11);
-  const toAccount = (data.accountNumber || data.bakongId.split('@')[0] || '').replace(/(\d{3})(?=\d)/g, '$1 ');
+  const toAccount = (data?.accountNumber || (data?.bakongId || '').split('@')[0] || '').replace(/(\d{3})(?=\d)/g, '$1 ') || '—';
+  const merchantName = data?.merchantName || 'ABA Account Holder';
   const dateStr = now.toLocaleString('en-US', {
     month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
   });
@@ -341,7 +359,7 @@ const SuccessScreen = ({ data, amount, currency, payeeAmount, payeeCurrency, onD
       { badge: <span className="w-9 h-9 rounded-xl bg-[#E5EAF2] text-[#5B7A9D] text-[17px] flex items-center justify-center">☁</span>, label: 'Processed' },
       { badge: <span className="w-9 h-9 rounded-xl bg-[#F97316] text-white text-[9px] font-extrabold flex items-center justify-center">EMNY</span>, label: 'Delivered' },
     ];
-    const initials = data.merchantName.split(' ').map((n) => n[0]).join('').slice(0, 3).toUpperCase() || 'EM';
+    const initials = (merchantName || 'EM').split(' ').map((n) => n[0]).join('').slice(0, 3).toUpperCase() || 'EM';
 
     return (
       <motion.div
@@ -802,7 +820,7 @@ export default function Transfer() {
         // Step 2: submit through the payment gateway. ABA PayWay first (real
         // channel when configured), Bakong next, local demo as last resort.
         const d = pendingRef.current;
-        if (!d) { setPinStep(false); setSuccess(true); return; }
+        if (!d) { setPinStep(false); setPinStatus('idle'); return; } // 无收款人数据，不应显示成功页
 
         /* ── Demo mode: settle locally so the journey stays fully testable.
            Flip USE_REAL_PAYMENT to true when the PayWay key is renewed (or the
