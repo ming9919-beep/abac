@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import {
-  X, User, ShieldCheck, Sparkles, Globe, Phone, FileText, Briefcase, ChevronRight, Volume2,
+  X, User, ShieldCheck, Sparkles, Globe, Phone, FileText, Briefcase, ChevronRight, Volume2, ScanFace,
 } from 'lucide-react';
 import { getTtsLang, setTtsLang, type TtsLang } from '@/lib/tts';
 import { getUser } from '@/lib/userStore';
+import FaceAuthModal from '@/components/FaceAuthModal';
+import { isFaceEnabled, setFaceEnabled, isFaceRegistered, clearFaceRegistration } from '@/lib/faceAuth';
 
 /* ─── Grey/white cartoon cat avatar (Tom style, same as Home) ───────────────── */
 const TomCatAvatar = () => (
@@ -48,6 +50,35 @@ export default function Settings() {
   const [, setLocation] = useLocation();
   const [tab, setTab] = useState<'personal' | 'business'>('personal');
   const [abaBizOn, setAbaBizOn] = useState(true);
+  const [faceOn, setFaceOn] = useState<boolean>(() => isFaceEnabled());
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  const [faceMode, setFaceMode] = useState<'register' | 'verify'>('register');
+
+  const toggleFace = (on: boolean) => {
+    if (on) {
+      // 开启：如果还没录入人脸，先打开录入弹窗；已录入则直接开启
+      if (isFaceRegistered()) {
+        setFaceEnabled(true);
+        setFaceOn(true);
+      } else {
+        setFaceMode('register');
+        setShowFaceModal(true);
+      }
+    } else {
+      setFaceEnabled(false);
+      setFaceOn(false);
+    }
+  };
+  const handleFaceSuccess = () => {
+    setFaceEnabled(true);
+    setFaceOn(true);
+    setShowFaceModal(false);
+  };
+  const handleFaceClose = () => {
+    // 弹窗内可能清除了人脸，同步状态
+    setFaceOn(isFaceEnabled());
+    setShowFaceModal(false);
+  };
   const [voiceLang, setVoiceLang] = useState<TtsLang>(() => getTtsLang());
   const VOICE_LABELS: Record<TtsLang, string> = { zh: '中文', en: 'English', km: 'ខ្មែរ' };
   const VOICE_NEXT: Record<TtsLang, TtsLang> = { zh: 'en', en: 'km', km: 'zh' };
@@ -60,9 +91,17 @@ export default function Settings() {
   const now = new Date();
   const lastLogin = `Login ចុងក្រោយ: ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} | ${now.getDate()} ${KHMER_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 
-  const rows: { icon: React.ReactNode; label: string; value?: string; toggle?: boolean; onToggle?: (v: boolean) => void; route?: string }[] = [
+  const rows: { icon: React.ReactNode; label: string; value?: string; toggle?: boolean; onToggle?: (v: boolean) => void; route?: string; onPress?: () => void }[] = [
     { icon: <User className="w-5 h-5 text-[#7B4FE8]" strokeWidth={2} />, label: 'ប្រូហ្វាល់របស់ខ្ញុំ', route: '/settings/profile' },
     { icon: <ShieldCheck className="w-5 h-5 text-[#7B4FE8]" strokeWidth={2} />, label: 'សុវត្ថិភាព' },
+    {
+      icon: <ScanFace className="w-5 h-5 text-[#7B4FE8]" strokeWidth={2} />,
+      label: 'ការស្គេមមុខ · 人脸识别',
+      value: faceOn ? 'បើក' : 'បិទ',
+      toggle: faceOn,
+      onToggle: toggleFace,
+      onPress: () => { setFaceMode(isFaceRegistered() ? 'verify' : 'register'); setShowFaceModal(true); },
+    },
     { icon: <Sparkles className="w-5 h-5 text-[#7B4FE8]" strokeWidth={2} />, label: 'មុខងារបន្ថែម', route: '/settings/features' },
     { icon: <Globe className="w-5 h-5 text-[#7B4FE8]" strokeWidth={2} />, label: 'ភាសា', value: 'ភាសាខ្មែរ' },
     { icon: <Volume2 className="w-5 h-5 text-[#7B4FE8]" strokeWidth={2} />, label: 'Voice 播报语言', value: VOICE_LABELS[voiceLang], onToggle: cycleVoice },
@@ -117,7 +156,7 @@ export default function Settings() {
           {rows.map((r) => (
             <button
               key={r.label}
-              onClick={() => (r.route ? setLocation(r.route) : r.onToggle?.(!r.toggle))}
+              onClick={() => { if (r.onPress) r.onPress(); else if (r.route) setLocation(r.route); else r.onToggle?.(!r.toggle); }}
               className="w-full px-5 py-4 flex items-center gap-4 text-left active:bg-gray-50 transition-colors"
             >
               <span className="w-9 h-9 rounded-[10px] bg-[#F3EDFF] flex items-center justify-center shrink-0">{r.icon}</span>
@@ -153,6 +192,13 @@ export default function Settings() {
           </div>
         </div>
       </div>
+      {showFaceModal && (
+        <FaceAuthModal
+          mode={faceMode}
+          onClose={handleFaceClose}
+          onSuccess={handleFaceSuccess}
+        />
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import * as faceapi from '@vladmandic/face-api';
 
 const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model/';
 const STORE_KEY = 'aba.face.descriptor.v1';
+const ENABLED_KEY = 'aba.face.enabled.v1';
 const THRESHOLD = 0.5; // lower = stricter
 
 let modelsLoaded = false;
@@ -36,8 +37,16 @@ export function isFaceRegistered(): boolean {
   }
 }
 
+/** Whether face unlock is enabled by the user (separate from having a face enrolled). */
+export function isFaceEnabled(): boolean {
+  try { return localStorage.getItem(ENABLED_KEY) === '1'; } catch { return false; }
+}
+export function setFaceEnabled(on: boolean): void {
+  try { on ? localStorage.setItem(ENABLED_KEY, '1') : localStorage.removeItem(ENABLED_KEY); } catch { /* noop */ }
+}
+
 export function clearFaceRegistration(): void {
-  try { localStorage.removeItem(STORE_KEY); } catch { /* noop */ }
+  try { localStorage.removeItem(STORE_KEY); localStorage.removeItem(ENABLED_KEY); } catch { /* noop */ }
 }
 
 /** Capture a face descriptor from a video element. Returns null if no face. */

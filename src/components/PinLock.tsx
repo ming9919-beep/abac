@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import pinLockLogo from '@/assets/pin-lock-logo.png';
 import FaceAuthModal from './FaceAuthModal';
-import { isFaceRegistered } from '../lib/faceAuth';
+import { isFaceRegistered, isFaceEnabled, setFaceEnabled } from '../lib/faceAuth';
 
 /* ─── ABA-style 6-digit PIN lock ──────────────────────────────────────────────
    Used at app launch (every fresh entry) and before the personal center.
@@ -28,6 +28,16 @@ const PinLock = ({
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceMode, setFaceMode] = useState<'register' | 'verify'>('verify');
 
+  /* Auto-prompt face unlock if enabled and enrolled */
+  useEffect(() => {
+    if (!(isFaceEnabled() && isFaceRegistered())) return;
+    const t = setTimeout(() => {
+      setFaceMode('verify');
+      setShowFaceModal(true);
+    }, 400);
+    return () => clearTimeout(t);
+  }, []);
+
   /* Face unlock — real face recognition via face-api.js.
      If a face is already registered, opens verify mode; otherwise opens
      register mode so the user enrolls once and can use face unlock thereafter. */
@@ -38,6 +48,8 @@ const PinLock = ({
 
   const handleFaceSuccess = () => {
     setShowFaceModal(false);
+    // 首次录入成功后自动开启人脸识别
+    if (faceMode === 'register') setFaceEnabled(true);
     try { sessionStorage.setItem(storageKey, '1'); } catch { /* ignore */ }
     onUnlock();
   };
