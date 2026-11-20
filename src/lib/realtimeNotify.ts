@@ -8,6 +8,7 @@
    Topic = "abac-pay-" + digits of payee account number.
 ────────────────────────────────────────────────────────────────────────── */
 import { recordTransferIn } from './notificationStore';
+import { sendPushNotification } from './webPush';
 
 const NTFY_BASE = 'https://ntfy.sh';
 const TOPIC_PREFIX = 'abac-pay-';
@@ -57,6 +58,13 @@ export async function notifyReceiver(opts: {
   } catch {
     /* network unreachable — notification simply won't arrive */
   }
+  // Also try Web Push system notification (works even if app is closed).
+  sendPushNotification({
+    payeeAccount: opts.payeeAccount,
+    amount: opts.amount,
+    currency: opts.currency,
+    fromName: opts.fromName,
+  }).catch(() => {});
 }
 
 /** Payee side: subscribe to incoming-transfer notifications for my account.

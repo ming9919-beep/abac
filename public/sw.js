@@ -31,3 +31,37 @@ self.addEventListener('fetch', (e) => {
     );
   }
 });
+
+/* ─── Web Push: show system notification when a push arrives ───────────────
+   Payload is JSON: { title, body, tag, url }. Works even when the page/tab
+   is closed — the browser wakes the service worker to display it. */
+self.addEventListener('push', (event) => {
+  let data = { title: 'ABA Mobile', body: 'មានការផ្ទេរប្រាក់ចូលគណនី' };
+  try {
+    if (event.data) {
+      const parsed = event.data.json();
+      data = { ...data, ...parsed };
+    }
+  } catch { /* use default */ }
+  const options = {
+    body: data.body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: data.tag || 'aba-transfer',
+    data: { url: data.url || '/notifications' },
+    requireInteraction: true,
+  };
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const c of clients) {
+        if ('focus' in c) return c.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    }),
+  );
+});

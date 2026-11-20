@@ -4,6 +4,13 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const webpush = require('web-push');
+
+/* ─── Web Push (VAPID) — system notifications even when the page is closed ── */
+const VAPID_PUBLIC = 'BMYs14LcP59uIkDqvmS0bVWuW6nA9OZsYt81Ks-LOdw4XpxcaMTqFQe94zF5cze6KfI2kFvWpZ5axCEd7V1NI1c';
+const VAPID_PRIVATE = 'CIFUJjiTtC_RVvdNfgwonYPh7GQYeSP7wCj_EPsChdM';
+webpush.setVapidDetails('mailto:aba@example.com', VAPID_PUBLIC, VAPID_PRIVATE);
+const pushSubs = new Map(); // accountDigits -> PushSubscription JSON
 
 const PORT = Number(process.env.PORT || process.argv[2] || 8080);
 const ROOT = path.join(__dirname, 'dist', 'public');
@@ -66,6 +73,62 @@ const server = http.createServer((req, res) => {
       r.setTimeout(8000, () => { r.destroy(); if (!res.headersSent) { res.writeHead(504); res.end('tts timeout'); } });
     };
     doGet(ttsUrl, 0);
+    return;
+  }
+  // Web Push: expose VAPID public key (for frontend subscription)
+  if (p === '/api/push/vapid-key') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({ key: VAPID_PUBLIC }));
+  }
+  // Web Push: subscribe — store push subscription by account (digits only)
+  if (p === '/api/push/subscribe' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => { body += c; if (body.length > 8192) req.destroy(); });
+    req.on('end', () => {
+      try {
+        const { account, subscription } = JSON.parse(body);
+        const digits = String(account || '').replace(/\D/g, '');
+        if (digits && subscription) pushSubs.set(digits, subscription);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, account: digits, subs: pushSubs.size }));
+      } catch {
+        res.writeHead(400); res.end('bad json');
+      }
+    });
+    return;
+  }
+  // Web Push: send — called after a successful transfer to notify the payee
+  if (p === '/api/push/send' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => { body += c; if (body.length > 8192) req.destroy(); });
+    req.on('end', async () => {
+      try {
+        const { payeeAccount, title, body: msgBody, amount, currency, fromName } = JSON.parse(body);
+        const digits = String(payeeAccount || '').replace(/\D/g, '');
+        const sub = pushSubs.get(digits);
+        if (!sub) {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, reason: 'no subscription for this account' }));
+        }
+        const payload = JSON.stringify({
+          title: title || 'បានទទួលប្រាក់',
+          body: msgBody || `${fromName || 'អ្នកផ្ញើ'} បានផ្ញើ ${amount || ''} ${currency || ''} ឲ្យអ្នក`,
+          tag: 'aba-transfer-' + Date.now(),
+          url: '/notifications',
+        });
+        try {
+          await webpush.sendNotification(sub, payload);
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch (e) {
+          if (e.statusCode === 404 || e.statusCode === 410) pushSubs.delete(digits); // expired
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, reason: String(e.message || e).slice(0, 80) }));
+        }
+      } catch {
+        res.writeHead(400); res.end('bad json');
+      }
+    });
     return;
   }
   if (p === '/api' || p.startsWith('/api/')) return proxyApi(req, res);

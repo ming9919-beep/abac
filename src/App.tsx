@@ -7,6 +7,7 @@ import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 import { isAuthPath, isSessionActive } from '@/lib/authFlow';
 import { subscribeIncoming } from '@/lib/realtimeNotify';
+import { enablePushNotifications } from '@/lib/webPush';
 import { accounts } from '@/data/accounts';
 import Home from '@/pages/Home';
 import Accounts from '@/pages/Accounts';
@@ -132,10 +133,12 @@ function App() {
   // Subscribe to realtime incoming-transfer notifications for all my accounts.
   // When a payer scans my QR and sends money, their device pushes a message to
   // ntfy.sh/<my-account-topic>; we receive it here and record it as an in-app
-  // notification (bell badge + Notifications center).
+  // notification (bell badge + Notifications center). Also enable Web Push so
+  // system notifications arrive even when the app is closed.
   useEffect(() => {
     if (!isSessionActive()) return;
     const unsubs = accounts.map((a) => subscribeIncoming(a.number));
+    accounts.forEach((a) => { enablePushNotifications(a.number).catch(() => {}); });
     return () => { unsubs.forEach((u) => u()); };
   }, []);
   const gated = !splashDone || !pinUnlocked;
