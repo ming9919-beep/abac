@@ -30,6 +30,7 @@ type DateGroup = { date: string; items: Transaction[] };
 
 /* ── Static statement data by date (USD) ── */
 const usdByDate: DateGroup[] = [
+  ...statement3m,
   { date: '31 តុលា 2026', items: [
     { id: 1, name: 'LEAH SEAN', amount: '+161.89', type: 'credit', avatarKind: 'initials', initials: 'LS', avatarColor: '#2563EB', badge: 'check' },
   ] },
@@ -128,7 +129,6 @@ const usdByDate: DateGroup[] = [
     { id: 47, name: 'ABA Bank Fee', amount: '-422.91', type: 'debit', avatarKind: 'khqr', avatarColor: '#E8002D',  },
     { id: 48, name: 'ACLEDA Bank Transfer', amount: '+575.74', type: 'credit', avatarKind: 'initials', initials: 'AB', avatarColor: '#2563EB', badge: 'check' },
   ] },
-  ...statement3m,
 ];
 
 /* ── Static statement data by date (KHR) ── */
