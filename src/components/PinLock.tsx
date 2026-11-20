@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import pinLockLogo from '@/assets/pin-lock-logo.png';
+import FaceAuthModal from './FaceAuthModal';
+import { isFaceRegistered } from '../lib/faceAuth';
 
 /* ─── ABA-style 6-digit PIN lock ──────────────────────────────────────────────
    Used at app launch (every fresh entry) and before the personal center.
@@ -23,27 +25,20 @@ const PinLock = ({
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const [faceScanning, setFaceScanning] = useState(false);
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  const [faceMode, setFaceMode] = useState<'register' | 'verify'>('verify');
 
-  /* Face unlock — tries real device biometrics (Face ID / fingerprint) via
-     WebAuthn; on devices without it, shows the scanning animation and
-     unlocks after 2s (demo mode). */
-  const tryFaceUnlock = async () => {
-    setFaceScanning(true);
-    try {
-      const PKC = (window as any).PublicKeyCredential;
-      if (PKC?.isUserVerifyingPlatformAuthenticatorAvailable) {
-        const avail = await PKC.isUserVerifyingPlatformAuthenticatorAvailable();
-        if (avail) {
-          const challenge = new Uint8Array(32);
-          crypto.getRandomValues(challenge);
-          await (navigator as any).credentials.get({
-            publicKey: { challenge, allowCredentials: [], userVerification: 'required', timeout: 25000 },
-          });
-        }
-      }
-    } catch { /* biometric unavailable — fall through to simulated scan */ }
-    await new Promise((r) => setTimeout(r, 2000));
-    setFaceScanning(false);
+  /* Face unlock — real face recognition via face-api.js.
+     If a face is already registered, opens verify mode; otherwise opens
+     register mode so the user enrolls once and can use face unlock thereafter. */
+  const tryFaceUnlock = () => {
+    setFaceMode(isFaceRegistered() ? 'verify' : 'register');
+    setShowFaceModal(true);
+  };
+
+  const handleFaceSuccess = () => {
+    setShowFaceModal(false);
+    try { sessionStorage.setItem(storageKey, '1'); } catch { /* ignore */ }
     onUnlock();
   };
 
@@ -199,6 +194,13 @@ const PinLock = ({
           100% { top: 92%; }
         }
       `}</style>
+      {showFaceModal && (
+        <FaceAuthModal
+          mode={faceMode}
+          onClose={() => setShowFaceModal(false)}
+          onSuccess={handleFaceSuccess}
+        />
+      )}
     </div>
   );
 };
