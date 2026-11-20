@@ -101,7 +101,7 @@ export const SESSION_KEY = 'aba.session';
 /** 只返回 sessionStorage —— 会话不持久化，关掉标签页即失效 */
 function sessionStore(): Storage | null {
   try {
-    return window.sessionStorage;
+    return window.localStorage;
   } catch {
     return null;
   }
@@ -118,8 +118,8 @@ export function startSession(): void {
     }
     const value = phone || '1';
     sessionStore()?.setItem(SESSION_KEY, value);
-    // 兼容之前存在 sessionStorage 的会话，避免升级后要重新登录
-    sessionStorage.setItem(SESSION_KEY, value);
+    // 清掉旧的 sessionStorage 会话，避免双份状态不一致
+    try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
   } catch {
     /* ignore */
   }
@@ -128,7 +128,7 @@ export function startSession(): void {
 /** 是否已登录 —— 只认 sessionStorage，关掉标签页即失效 */
 export function isSessionActive(): boolean {
   try {
-    return Boolean(sessionStorage.getItem(SESSION_KEY));
+    return Boolean(window.localStorage.getItem(SESSION_KEY));
   } catch {
     return false;
   }
